@@ -11,11 +11,26 @@ cd 1600man
 
 ## 2. Flutterのインストール（未導入の場合）
 
-macOSではHomebrewでのインストールが簡単です。
+### macOS
+
+Homebrewでのインストールが簡単です。
 
 ```bash
 brew install --cask flutter
 ```
+
+### Windows
+
+1. [Flutter公式サイト](https://docs.flutter.dev/get-started/install/windows)からFlutter SDKのzipをダウンロードし、`C:\src\flutter` など好きな場所に展開する（パスに空白や日本語を含めない）
+2. 環境変数 `Path` に `C:\src\flutter\bin` を追加する
+   - 「システム環境変数の編集」→「環境変数」→ ユーザー環境変数の `Path` に追記
+3. PowerShellまたはコマンドプロンプトを開き直して確認
+
+   ```powershell
+   flutter --version
+   ```
+
+   Windows版はiOS開発ができないため、このプロジェクトではAndroid向けの動作確認のみ行えます。
 
 インストール後、以下のコマンドで環境が正しく整っているか確認してください（Android SDK、Xcodeなどの状態が表示されます）。
 
@@ -23,13 +38,15 @@ brew install --cask flutter
 flutter doctor
 ```
 
-`flutter doctor` で指摘された不足項目（Xcodeのインストール、Android Studio / Android SDKのインストール、CocoaPodsのインストールなど）があれば、表示される指示に従って対応してください。
+`flutter doctor` で指摘された不足項目があれば、表示される指示に従って対応してください。
 
-- iOS開発には Xcode（App Store からインストール）と CocoaPods が必要です
+- iOS開発（macOSのみ）には Xcode（App Store からインストール）と CocoaPods が必要です
   ```bash
   sudo gem install cocoapods
   ```
-- Android開発には Android Studio と Android SDK が必要です
+- Android開発（macOS / Windows共通）には Android Studio と Android SDK が必要です
+  - Windowsの場合、Android Studioのインストーラーで「Android SDK」「Android Virtual Device」にチェックを入れてインストールする
+  - `flutter doctor --android-licenses` を実行してAndroidライセンスに同意しておく
 
 ## 3. 依存パッケージの取得
 
