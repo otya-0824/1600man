@@ -105,7 +105,82 @@ flutter run       # デフォルトデバイスで実行
 | `.gitignore` | Gitの管理対象外にするファイル・フォルダの指定 |
 | `.metadata` | FlutterツールがプロジェクトのFlutter/Dartバージョンなどを管理するための内部ファイル（手動編集不要） |
 
+## GitHub（Git）の使い方一覧
+
+チームで開発する際によく使うコマンドをまとめます。
+
+### 最新の変更を取得する
+
+```bash
+git pull origin main
+```
+
+作業を始める前に必ず実行し、他の人の変更を取り込んでから作業しましょう。
+
+### 変更用のブランチを作る
+
+```bash
+git checkout -b feature/画面名など
+```
+
+`main`ブランチに直接コミットせず、機能ごとにブランチを分けるのがおすすめです。
+
+### 変更内容を確認する
+
+```bash
+git status   # 変更されたファイル一覧
+git diff     # 変更の中身（差分）
+```
+
+### 変更をコミットする
+
+```bash
+git add .                     # 変更したファイルをすべてステージに追加
+git add ファイルパス           # 特定のファイルだけ追加したい場合
+git commit -m "コミットメッセージ"
+```
+
+### GitHubにpushする
+
+```bash
+git push origin ブランチ名
+```
+
+初回pushで「upstreamが設定されていません」と言われた場合は以下を使います。
+
+```bash
+git push -u origin ブランチ名
+```
+
+### プルリクエスト（PR）を作る
+
+1. GitHubのリポジトリページを開く
+2. push後に表示される「Compare & pull request」ボタンを押す
+3. タイトル・説明を書いて「Create pull request」
+
+### ブランチを切り替える
+
+```bash
+git checkout main            # mainブランチに戻る
+git checkout ブランチ名       # 他のブランチに切り替え
+```
+
+### コミット履歴を見る
+
+```bash
+git log --oneline
+```
+
+### よくあるトラブル
+
+| 状況 | 対処 |
+| --- | --- |
+| `git pull`で「ローカルの変更で上書きされる」と怒られる | `git stash` で一旦変更を退避 → `git pull` → `git stash pop` で変更を戻す |
+| コミットメッセージを間違えた（直前のコミットのみ） | `git commit --amend -m "正しいメッセージ"`（ただしpush前のみ） |
+| pushしたら他の人の変更と衝突（コンフリクト） | 該当ファイルを開き `<<<<<<<` `=======` `>>>>>>>` の部分を手動で修正 → `git add` → `git commit` |
+
 ## 参考
 
 - [Flutter公式ドキュメント](https://docs.flutter.dev/)
 - [Flutter入門（初めてのアプリ作成）](https://docs.flutter.dev/get-started/codelab)
+- [GitHub公式ドキュメント](https://docs.github.com/ja)
