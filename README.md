@@ -2,6 +2,30 @@
 
 iPhone / Android 両対応のFlutterアプリです。
 
+## 0. Gitのインストール（Windowsでコマンドプロンプトを使う場合）
+
+Windowsに標準ではGitが入っていないため、`git`コマンドが使えない場合は以下の方法でインストールしてください。
+
+**方法A: winget（Windows 10/11標準）を使う**
+
+コマンドプロンプトを開いて以下を実行します。
+
+```cmd
+winget install --id Git.Git -e --source winget
+```
+
+インストール後、コマンドプロンプトを開き直して確認します。
+
+```cmd
+git --version
+```
+
+**方法B: インストーラーを使う**
+
+1. [Git for Windows](https://gitforwindows.org/)にアクセスし、`Download`からインストーラー（.exe）をダウンロード
+2. インストーラーを実行し、基本的にデフォルト設定のまま「Next」で進めてインストール
+3. インストール完了後、コマンドプロンプトを開き直し `git --version` で確認
+
 ## 1. リポジトリのクローン
 
 ```bash
