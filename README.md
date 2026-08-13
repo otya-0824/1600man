@@ -1,0 +1,70 @@
+# man1600
+
+iPhone / Android 両対応のFlutterアプリです。
+
+## 1. リポジトリのクローン
+
+```bash
+git clone https://github.com/otya-0824/1600man.git
+cd 1600man
+```
+
+## 2. Flutterのインストール（未導入の場合）
+
+macOSではHomebrewでのインストールが簡単です。
+
+```bash
+brew install --cask flutter
+```
+
+インストール後、以下のコマンドで環境が正しく整っているか確認してください（Android SDK、Xcodeなどの状態が表示されます）。
+
+```bash
+flutter doctor
+```
+
+`flutter doctor` で指摘された不足項目（Xcodeのインストール、Android Studio / Android SDKのインストール、CocoaPodsのインストールなど）があれば、表示される指示に従って対応してください。
+
+- iOS開発には Xcode（App Store からインストール）と CocoaPods が必要です
+  ```bash
+  sudo gem install cocoapods
+  ```
+- Android開発には Android Studio と Android SDK が必要です
+
+## 3. 依存パッケージの取得
+
+```bash
+flutter pub get
+```
+
+## 4. アプリの実行
+
+接続した実機・起動中のシミュレーター/エミュレーターに対して実行します。
+
+```bash
+flutter devices   # 認識されているデバイス一覧を確認
+flutter run       # デフォルトデバイスで実行
+```
+
+- iOSシミュレーターで実行する場合は事前に `open -a Simulator` でシミュレーターを起動してください
+- Androidエミュレーターの場合は Android Studio の Device Manager から起動するか `flutter emulators --launch <emulator_id>` を実行してください
+- 実機のiPhoneで実行する場合は、iPhone側で「デベロッパーモード」を有効にし、Macとケーブル接続（またはWi-Fi経由でペアリング）してください
+
+## ディレクトリ・ファイル構成
+
+| パス | 説明 |
+| --- | --- |
+| `lib/main.dart` | アプリのエントリーポイント。ここにDartのアプリコードを書いていく |
+| `pubspec.yaml` | パッケージ名・バージョン・依存ライブラリなどを定義する設定ファイル |
+| `pubspec.lock` | 依存ライブラリの実際に解決されたバージョンを固定するファイル（`flutter pub get`で自動生成） |
+| `analysis_options.yaml` | Dartの静的解析（Lint）ルールの設定ファイル |
+| `test/` | ウィジェットテスト・単体テストを置くディレクトリ |
+| `android/` | Androidアプリ向けのネイティブプロジェクト一式（Gradle設定、AndroidManifest.xmlなど） |
+| `ios/` | iOSアプリ向けのネイティブプロジェクト一式（Xcodeプロジェクト、Info.plistなど） |
+| `.gitignore` | Gitの管理対象外にするファイル・フォルダの指定 |
+| `.metadata` | FlutterツールがプロジェクトのFlutter/Dartバージョンなどを管理するための内部ファイル（手動編集不要） |
+
+## 参考
+
+- [Flutter公式ドキュメント](https://docs.flutter.dev/)
+- [Flutter入門（初めてのアプリ作成）](https://docs.flutter.dev/get-started/codelab)
