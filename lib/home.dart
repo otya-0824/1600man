@@ -1,7 +1,13 @@
 import 'package:flutter/material.dart';
 
+import 'models/meal.dart';
+import 'services/record_service.dart';
+
 class HomePage extends StatelessWidget {
-  const HomePage({super.key});
+  HomePage({super.key});
+
+  // 食事記録の取得担当（その日の合計をリアルタイムに流す）
+  final RecordService _recordService = RecordService();
 
   @override
   Widget build(BuildContext context) {
@@ -52,63 +58,88 @@ class HomePage extends StatelessWidget {
 
             const SizedBox(height: 30),
 
-            Container(
-              width: 180,
-              height: 180,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                border: Border.all(
-                  color: Colors.green,
-                  width: 10,
-                ),
-              ),
-              child: const Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Text(
-                    "カロリー",
-                    style: TextStyle(
-                      color: Colors.grey,
-                    ),
-                  ),
-                  SizedBox(height: 8),
-                  Text(
-                    "---",
-                    style: TextStyle(
-                      fontSize: 40,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  Text(
-                    "/ --- kcal",
-                    style: TextStyle(
-                      color: Colors.grey,
-                    ),
-                  ),
-                ],
-              ),
-            ),
+            // その日の合計をFirestoreからリアルタイムに受け取って表示する
+            StreamBuilder<DailySummary>(
+              stream: _recordService.watchDailySummary(today),
+              builder: (context, snapshot) {
+                final summary = snapshot.data ?? const DailySummary();
+                final hasData = snapshot.hasData;
 
-            const SizedBox(height: 30),
+                // 数値を文字列に（データ取得前は "---" のまま）
+                String kcal =
+                    hasData ? summary.totalCalorie.round().toString() : "---";
+                String p = hasData
+                    ? "${summary.totalProtein.round()} g"
+                    : "--- g";
+                String f =
+                    hasData ? "${summary.totalFat.round()} g" : "--- g";
+                String c =
+                    hasData ? "${summary.totalCarbo.round()} g" : "--- g";
 
-            Row(
-              children: [
-                _nutritionItem(
-                  title: "P",
-                  value: "--- g",
-                  color: Colors.green,
-                ),
-                _nutritionItem(
-                  title: "F",
-                  value: "--- g",
-                  color: Colors.orange,
-                ),
-                _nutritionItem(
-                  title: "C",
-                  value: "--- g",
-                  color: Colors.red,
-                ),
-              ],
+                return Column(
+                  children: [
+                    Container(
+                      width: 180,
+                      height: 180,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        border: Border.all(
+                          color: Colors.green,
+                          width: 10,
+                        ),
+                      ),
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          const Text(
+                            "カロリー",
+                            style: TextStyle(
+                              color: Colors.grey,
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            kcal,
+                            style: const TextStyle(
+                              fontSize: 40,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          // 目標カロリー(分母)はせなの計算結果が入るまで "---"
+                          const Text(
+                            "/ --- kcal",
+                            style: TextStyle(
+                              color: Colors.grey,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+
+                    const SizedBox(height: 30),
+
+                    Row(
+                      children: [
+                        _nutritionItem(
+                          title: "P",
+                          value: p,
+                          color: Colors.green,
+                        ),
+                        _nutritionItem(
+                          title: "F",
+                          value: f,
+                          color: Colors.orange,
+                        ),
+                        _nutritionItem(
+                          title: "C",
+                          value: c,
+                          color: Colors.red,
+                        ),
+                      ],
+                    ),
+                  ],
+                );
+              },
             ),
 
             const SizedBox(height: 35),

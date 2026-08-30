@@ -1,6 +1,7 @@
-// // Firebaseに送る予定のデータは110~119
 import 'package:flutter/material.dart';
 import 'home.dart';
+import 'models/user_profile.dart';
+import 'services/profile_service.dart';
 
 class ProfilePage extends StatefulWidget {
   const ProfilePage({super.key});
@@ -24,6 +25,12 @@ class _ProfilePageState extends State<ProfilePage> {
 
   int age = 0;
 
+  // Firestoreとのやり取り担当
+  final ProfileService _profileService = ProfileService();
+
+  // 保存・読み込み中の状態（ボタン二重押し防止・ローディング表示用）
+  bool isSaving = false;
+
   // =========================
   // 入力欄コントローラー
   // =========================
@@ -40,6 +47,34 @@ class _ProfilePageState extends State<ProfilePage> {
   @override
   void initState() {
     super.initState();
+    calculateAge();
+    loadSavedProfile(); // 起動時に保存済みプロフィールを読み込む（開き直しても残る）
+  }
+
+  // =========================
+  // 保存済みプロフィールの読み込み
+  // 前回登録した内容をFirestoreから取り出して入力欄に反映する
+  // =========================
+
+  Future<void> loadSavedProfile() async {
+    final profile = await _profileService.loadProfile();
+    if (profile == null || !mounted) return;
+
+    // 生年月日 "2000-1-1" を 年/月/日 に分解
+    final dateParts = profile.birthDate.split("-");
+
+    setState(() {
+      isMale = profile.gender == "male";
+      if (dateParts.length == 3) {
+        selectedYear = dateParts[0];
+        selectedMonth = dateParts[1];
+        selectedDay = dateParts[2];
+      }
+      goal = profile.goal;
+      heightController.text = profile.height?.toString() ?? "";
+      weightController.text = profile.weight?.toString() ?? "";
+      goalWeightController.text = profile.goalWeight?.toString() ?? "";
+    });
     calculateAge();
   }
 
@@ -92,31 +127,26 @@ class _ProfilePageState extends State<ProfilePage> {
   // 将来的にFirebase送信
   // =========================
 
-  void registerProfile() {
-    String gender = isMale ? "male" : "female";
+  Future<void> registerProfile() async {
+    if (isSaving) return; // 二重押し防止
 
-    String birthDate =
-        "$selectedYear-$selectedMonth-$selectedDay";
+    final profile = UserProfile(
+      gender: isMale ? "male" : "female",
+      birthDate: "$selectedYear-$selectedMonth-$selectedDay",
+      height: double.tryParse(heightController.text),
+      weight: double.tryParse(weightController.text),
+      goal: goal,
+      goalWeight: double.tryParse(goalWeightController.text),
+    );
 
-    double? height =
-        double.tryParse(heightController.text);
+    setState(() => isSaving = true);
 
-    double? weight =
-        double.tryParse(weightController.text);
+    // Firestoreに保存（開き直しても残るようクラウドに書き込む）
+    await _profileService.saveProfile(profile);
 
-    double? goalWeight =
-        double.tryParse(goalWeightController.text);
+    if (!mounted) return;
+    setState(() => isSaving = false);
 
-    // Firebaseに送る予定のデータ
-    print({
-      "gender": gender,
-      "birthDate": birthDate,
-      "height": height,
-      "weight": weight,
-      "goal": goal,
-      "goalWeight": goalWeight,
-    });
-    //ここまで
     Navigator.push(
       context,
       MaterialPageRoute(
@@ -318,6 +348,7 @@ class _ProfilePageState extends State<ProfilePage> {
             // =========================
 
             TextFormField(
+              key: ValueKey(age), // ageが変わったら表示を作り直す
               readOnly: true,
               initialValue: "$age歳",
               decoration: customDecoration("年齢"),
@@ -392,7 +423,7 @@ class _ProfilePageState extends State<ProfilePage> {
               width: double.infinity,
               height: 55,
               child: ElevatedButton(
-                onPressed: registerProfile,
+                onPressed: isSaving ? null : registerProfile,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.green,
                   shape: RoundedRectangleBorder(
@@ -400,14 +431,23 @@ class _ProfilePageState extends State<ProfilePage> {
                         BorderRadius.circular(14),
                   ),
                 ),
-                child: const Text(
-                  "登録",
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
+                child: isSaving
+                    ? const SizedBox(
+                        width: 22,
+                        height: 22,
+                        child: CircularProgressIndicator(
+                          color: Colors.white,
+                          strokeWidth: 2,
+                        ),
+                      )
+                    : const Text(
+                        "登録",
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
               ),
             ),
           ],
