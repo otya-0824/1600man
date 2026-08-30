@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "632920621960",
+    "project_id": "hakkason-b9738",
+    "storage_bucket": "hakkason-b9738.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:632920621960:android:513cfa602f6a9d86ce303d",
+        "android_client_info": {
+          "package_name": "com.otya0824.man1600"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDx3TH6yzFouG02L7FdJSV7w4uYPheWYY4"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
