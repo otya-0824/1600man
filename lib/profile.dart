@@ -1,6 +1,6 @@
-// // Firebaseに送る予定のデータは110~119
+﻿// // Firebaseに送る予定のデータは110~119
 import 'package:flutter/material.dart';
-import 'home.dart';
+import 'mypage.dart'; // マイページをインポート
 
 class ProfilePage extends StatefulWidget {
   const ProfilePage({super.key});
@@ -116,11 +116,12 @@ class _ProfilePageState extends State<ProfilePage> {
       "goal": goal,
       "goalWeight": goalWeight,
     });
-    //ここまで
-    Navigator.push(
+
+    // 登録完了後にホームではなくマイページへ遷移
+    Navigator.pushReplacement(
       context,
       MaterialPageRoute(
-        builder: (context) => const HomePage(),
+        builder: (context) => const MypageScreen(),
       ),
     );
   }
@@ -319,6 +320,7 @@ class _ProfilePageState extends State<ProfilePage> {
 
             TextFormField(
               readOnly: true,
+              key: ValueKey(age),
               initialValue: "$age歳",
               decoration: customDecoration("年齢"),
             ),
