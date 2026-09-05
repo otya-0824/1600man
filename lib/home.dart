@@ -5,13 +5,69 @@ import 'gurahu.dart';
 import 'calendar.dart';
 import 'mypage.dart';
 
-class HomePage extends StatelessWidget {
+class HomePage extends StatefulWidget {
   const HomePage({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    final today = DateTime.now();
+  State<HomePage> createState() => _HomePageState();
+}
 
+class _HomePageState extends State<HomePage> {
+  // ==========================================
+  // 【バックエンド連携用変数定義】
+  // ==========================================
+
+  // 1. 基本情報
+  String userId = "user_12345";
+  DateTime currentDate = DateTime.now();
+
+  // 2. 目標数値 (Goal Data)
+  int targetCalorie = 2000;
+  double targetProtein = 60.0;
+  double targetFat = 50.0;
+  double targetCarbo = 250.0;
+  double targetVitamin = 100.0; // ビタミン目標(%)
+  double targetMineral = 100.0; // ミネラル目標(%)
+
+  // 3. 本日の合計摂取数値 (Consumed Data)
+  int consumedCalorie = 1450;
+  double consumedProtein = 42.0; // 60g中42g (70%)
+  double consumedFat = 30.0;     // 50g中30g (60%)
+  double consumedCarbo = 200.0;  // 250g中200g (80%)
+  double consumedVitamin = 50.0; // 50%
+  double consumedMineral = 90.0; // 90%
+
+  // 4. 食事リストデータ (Meal List Data)
+  List<Map<String, dynamic>> todayMeals = [
+    {
+      "mealId": "m_01",
+      "category": "朝食",
+      "menuName": "トーストと目玉焼き",
+      "calorie": 400,
+      "protein": 15.0,
+      "fat": 12.0,
+      "carbo": 50.0,
+    },
+    {
+      "mealId": "m_02",
+      "category": "昼食",
+      "menuName": "和風ハンバーグ定食",
+      "calorie": 750,
+      "protein": 22.5,
+      "fat": 18.0,
+      "carbo": 90.0,
+    },
+  ];
+
+  // レーダーチャート用の達成率計算ヘルパー (%)
+  double _calculatePercentage(double consumed, double target) {
+    if (target == 0) return 0.0;
+    double ratio = (consumed / target) * 100;
+    return ratio > 100 ? 100 : ratio; // 上限100%
+  }
+
+  @override
+  Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
@@ -30,8 +86,9 @@ class HomePage extends StatelessWidget {
         padding: const EdgeInsets.all(20),
         child: Column(
           children: [
+            // 日付表示
             Text(
-              "${today.year}/${today.month}/${today.day}",
+              "${currentDate.year}/${currentDate.month}/${currentDate.day}",
               style: const TextStyle(
                 color: Colors.grey,
               ),
@@ -49,42 +106,42 @@ class HomePage extends StatelessWidget {
                   width: 10,
                 ),
               ),
-              child: const Center(
+              child: Center(
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Text(
+                    const Text(
                       "摂取カロリー",
                       style: TextStyle(
                         color: Colors.grey,
                       ),
                     ),
-                    SizedBox(height: 8),
+                    const SizedBox(height: 8),
                     Text(
-                      "---",
-                      style: TextStyle(
+                      "$consumedCalorie", // 変数を反映
+                      style: const TextStyle(
                         fontSize: 36,
                         fontWeight: FontWeight.bold,
                       ),
                     ),
-                    Text("/ --- kcal")
+                    Text("/ $targetCalorie kcal") // 変数を反映
                   ],
                 ),
               ),
             ),
             const SizedBox(height: 30),
 
-            // PFC
+            // PFCカード表示
             Row(
               children: [
                 Expanded(
-                  child: _pfcCard("P", "--- g", Colors.green),
+                  child: _pfcCard("P", "${consumedProtein.toStringAsFixed(1)} g", Colors.green),
                 ),
                 Expanded(
-                  child: _pfcCard("F", "--- g", Colors.orange),
+                  child: _pfcCard("F", "${consumedFat.toStringAsFixed(1)} g", Colors.orange),
                 ),
                 Expanded(
-                  child: _pfcCard("C", "--- g", Colors.red),
+                  child: _pfcCard("C", "${consumedCarbo.toStringAsFixed(1)} g", Colors.red),
                 ),
               ],
             ),
@@ -102,6 +159,7 @@ class HomePage extends StatelessWidget {
             ),
             const SizedBox(height: 20),
 
+            // レーダーチャート（変数連動）
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
@@ -142,30 +200,42 @@ class HomePage extends StatelessWidget {
                         }
                       },
                       dataSets: [
+                        // 目標基準線 (100%固定の外枠)
                         RadarDataSet(
                           borderColor: Colors.red,
                           borderWidth: 3,
                           fillColor: Colors.grey.withOpacity(0.15),
                           entryRadius: 0,
                           dataEntries: const [
-                            RadarEntry(value: 70),
-                            RadarEntry(value: 70),
-                            RadarEntry(value: 60),
+                            RadarEntry(value: 100),
+                            RadarEntry(value: 100),
+                            RadarEntry(value: 100),
                             RadarEntry(value: 100),
                             RadarEntry(value: 100),
                           ],
                         ),
+                        // 実際の摂取量 (変数から計算した割合データ)
                         RadarDataSet(
                           borderColor: Colors.green,
                           borderWidth: 3,
                           fillColor: Colors.green.withOpacity(0.4),
                           entryRadius: 3,
-                          dataEntries: const [
-                            RadarEntry(value: 70),
-                            RadarEntry(value: 60),
-                            RadarEntry(value: 80),
-                            RadarEntry(value: 50),
-                            RadarEntry(value: 90),
+                          dataEntries: [
+                            RadarEntry(
+                                value: _calculatePercentage(
+                                    consumedProtein, targetProtein)),
+                            RadarEntry(
+                                value: _calculatePercentage(
+                                    consumedFat, targetFat)),
+                            RadarEntry(
+                                value: _calculatePercentage(
+                                    consumedCarbo, targetCarbo)),
+                            RadarEntry(
+                                value: _calculatePercentage(
+                                    consumedVitamin, targetVitamin)),
+                            RadarEntry(
+                                value: _calculatePercentage(
+                                    consumedMineral, targetMineral)),
                           ],
                         ),
                       ],
@@ -175,9 +245,9 @@ class HomePage extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 20),
-            const Text(
-              "※現在はテストデータを表示中",
-              style: TextStyle(
+            Text(
+              "ユーザーID: $userId",
+              style: const TextStyle(
                 color: Colors.grey,
               ),
             ),
@@ -222,7 +292,8 @@ class HomePage extends StatelessWidget {
           BottomNavigationBarItem(icon: Icon(Icons.home), label: 'ホーム'),
           BottomNavigationBarItem(icon: Icon(Icons.restaurant), label: '記録'),
           BottomNavigationBarItem(icon: Icon(Icons.bar_chart), label: 'グラフ'),
-          BottomNavigationBarItem(icon: Icon(Icons.calendar_month), label: 'カレンダー'),
+          BottomNavigationBarItem(
+              icon: Icon(Icons.calendar_month), label: 'カレンダー'),
           BottomNavigationBarItem(icon: Icon(Icons.person), label: 'マイページ'),
         ],
       ),
