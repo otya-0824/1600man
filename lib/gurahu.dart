@@ -1,8 +1,4 @@
-﻿import 'package:flutter/material.dart';
-import 'meal.dart';
-import 'home.dart';
-import 'calendar.dart';
-import 'mypage.dart';
+import 'package:flutter/material.dart';
 
 class GraphScreen extends StatefulWidget {
   const GraphScreen({super.key});
@@ -12,8 +8,10 @@ class GraphScreen extends StatefulWidget {
 }
 
 class _GraphScreenState extends State<GraphScreen> {
-  int _selectedCategoryIndex = 0;
-  int _selectedPeriodIndex = 0;
+  // 0: カロリー, 1: ビタミン, 2: ミネラル (-1は未選択)
+  int _selectedUpperIndex = 0;
+  // 0: タンパク質, 1: 脂質, 2: 炭水化物 (-1は未選択)
+  int _selectedLowerIndex = -1;
 
   final DateTime _minDate = DateTime(2026, 8, 20);
   final DateTime _maxDate = DateTime(2090, 12, 31);
@@ -67,7 +65,24 @@ class _GraphScreenState extends State<GraphScreen> {
     DateTime limitMonday = _getMondayOfWeek(_minDate);
     bool canGoPrev = _currentMonday.isAfter(limitMonday);
     bool canGoNext = _currentMonday.add(const Duration(days: 7)).isBefore(_maxDate);
-    const Color primaryGreen = Color(0xFF66BB6A);
+
+    // ==========================================
+    // 【バックエンド連携用サンプルデータ】
+    // ==========================================
+    final List<double> calorieData = [1800, 2100, 1600, 2500, 1900, 2200, 1700];
+    final double targetCalories = 1200.0; 
+    final double averageCalories = 2028.0;
+
+    // ==========================================
+    // 【動的スケール計算】
+    // ==========================================
+    double maxDataValue = calorieData.isNotEmpty 
+        ? calorieData.reduce((curr, next) => curr > next ? curr : next) 
+        : 2000.0;
+    
+    double baseMax = maxDataValue > targetCalories ? maxDataValue : targetCalories;
+    double maxGraphValue = baseMax + 500.0;
+    double topScaleValue = maxGraphValue;
 
     return Scaffold(
       backgroundColor: Colors.white,
@@ -76,9 +91,7 @@ class _GraphScreenState extends State<GraphScreen> {
         elevation: 0,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back_ios, color: Colors.black54, size: 18),
-          onPressed: () {
-            Navigator.pop(context);
-          },
+          onPressed: () {},
         ),
         centerTitle: true,
         title: const Text(
@@ -96,27 +109,30 @@ class _GraphScreenState extends State<GraphScreen> {
           child: Column(
             children: [
               const SizedBox(height: 10),
+              // 上段タブ：カロリー / ビタミン / ミネラル
               Row(
                 children: [
-                  _buildTabButton('カロリー', 0, isCategory: true),
+                  _buildTabButton('カロリー', 0, isUpper: true),
                   const SizedBox(width: 8),
-                  _buildTabButton('PFC', 1, isCategory: true),
+                  _buildTabButton('ビタミン', 1, isUpper: true),
                   const SizedBox(width: 8),
-                  _buildTabButton('栄養素', 2, isCategory: true),
+                  _buildTabButton('ミネラル', 2, isUpper: true),
                 ],
               ),
               const SizedBox(height: 8),
+              // 下段タブ：タンパク質 / 脂質 / 炭水化物（五大栄養素のうち3つ）
               Row(
                 children: [
-                  _buildTabButton('1日', 0, isCategory: false),
+                  _buildTabButton('タンパク質', 0, isUpper: false),
                   const SizedBox(width: 8),
-                  _buildTabButton('1週間', 1, isCategory: false),
+                  _buildTabButton('脂質', 1, isUpper: false),
                   const SizedBox(width: 8),
-                  _buildTabButton('1ヶ月', 2, isCategory: false),
+                  _buildTabButton('炭水化物', 2, isUpper: false),
                 ],
               ),
               const SizedBox(height: 16),
 
+              // 期間切り替え
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
@@ -149,19 +165,20 @@ class _GraphScreenState extends State<GraphScreen> {
               ),
               const SizedBox(height: 12),
 
+              // 平均・目標のラベル
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                 children: [
                   Column(
-                    children: const [
-                      Text('平均', style: TextStyle(fontSize: 11, color: Colors.grey)),
-                      SizedBox(height: 2),
+                    children: [
+                      const Text('平均', style: TextStyle(fontSize: 11, color: Colors.grey)),
+                      const SizedBox(height: 2),
                       Text(
-                        '-- kcal',
-                        style: TextStyle(
+                        '${averageCalories.toInt()} kcal',
+                        style: const TextStyle(
                           fontSize: 15,
                           fontWeight: FontWeight.bold,
-                          color: Colors.black45,
+                          color: Colors.black87,
                         ),
                       ),
                     ],
@@ -172,15 +189,15 @@ class _GraphScreenState extends State<GraphScreen> {
                     color: Colors.grey.shade300,
                   ),
                   Column(
-                    children: const [
-                      Text('目標', style: TextStyle(fontSize: 11, color: Colors.grey)),
-                      SizedBox(height: 2),
+                    children: [
+                      const Text('目標', style: TextStyle(fontSize: 11, color: Colors.grey)),
+                      const SizedBox(height: 2),
                       Text(
-                        '-- kcal',
-                        style: TextStyle(
+                        '${targetCalories.toInt()} kcal', 
+                        style: const TextStyle(
                           fontSize: 15,
                           fontWeight: FontWeight.bold,
-                          color: Colors.black45,
+                          color: Colors.black87,
                         ),
                       ),
                     ],
@@ -189,58 +206,110 @@ class _GraphScreenState extends State<GraphScreen> {
               ),
               const SizedBox(height: 16),
 
+              // グラフエリア
               Container(
-                height: 240,
-                padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
+                height: 250,
+                padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
                   color: Colors.white,
                   borderRadius: BorderRadius.circular(12),
                   border: Border.all(color: Colors.grey.shade200),
                 ),
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.end,
+                child: Column(
                   children: [
-                    SizedBox(
-                      width: 40,
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        crossAxisAlignment: CrossAxisAlignment.end,
-                        children: const [
-                          Text('(kcal)', style: TextStyle(fontSize: 10, color: Colors.grey)),
-                          Text('2,500', style: TextStyle(fontSize: 10, color: Colors.grey)),
-                          Text('2,000', style: TextStyle(fontSize: 10, color: Colors.grey)),
-                          Text('1,500', style: TextStyle(fontSize: 10, color: Colors.grey)),
-                          Text('1,000', style: TextStyle(fontSize: 10, color: Colors.grey)),
-                          Text('500', style: TextStyle(fontSize: 10, color: Colors.grey)),
-                          Text('0', style: TextStyle(fontSize: 10, color: Colors.grey)),
-                        ],
+                    Expanded(
+                      child: LayoutBuilder(
+                        builder: (context, constraints) {
+                          double chartHeight = constraints.maxHeight;
+
+                          return Row(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              // 左側の縦軸目盛り
+                              SizedBox(
+                                width: 45,
+                                child: Stack(
+                                  children: [
+                                    Positioned(top: chartHeight * 0.0, right: 0, child: Text('${(topScaleValue * 1.0).toInt()}', style: const TextStyle(fontSize: 10, color: Colors.grey))),
+                                    Positioned(top: chartHeight * 0.2, right: 0, child: Text('${(topScaleValue * 0.8).toInt()}', style: const TextStyle(fontSize: 10, color: Colors.grey))),
+                                    Positioned(top: chartHeight * 0.4, right: 0, child: Text('${(topScaleValue * 0.6).toInt()}', style: const TextStyle(fontSize: 10, color: Colors.grey))),
+                                    Positioned(top: chartHeight * 0.6, right: 0, child: Text('${(topScaleValue * 0.4).toInt()}', style: const TextStyle(fontSize: 10, color: Colors.grey))),
+                                    Positioned(top: chartHeight * 0.8, right: 0, child: Text('${(topScaleValue * 0.2).toInt()}', style: const TextStyle(fontSize: 10, color: Colors.grey))),
+                                    Positioned(bottom: 0, right: 0, child: const Text('0', style: TextStyle(fontSize: 10, color: Colors.grey))),
+                                  ],
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              // 右側のグラフ本体
+                              Expanded(
+                                child: Stack(
+                                  children: [
+                                    // 背景の目盛り線（6本）
+                                    ...List.generate(6, (index) {
+                                      double ratio = index / 5;
+                                      return Positioned(
+                                        top: chartHeight * ratio,
+                                        left: 0,
+                                        right: 0,
+                                        child: Divider(color: Colors.grey.shade200, height: 1),
+                                      );
+                                    }),
+                                    
+                                    // 目標ライン（黄色い横棒）
+                                    Positioned(
+                                      top: chartHeight * (1 - (targetCalories / topScaleValue)),
+                                      left: 0,
+                                      right: 0,
+                                      child: Container(
+                                        height: 2,
+                                        color: Colors.amber,
+                                      ),
+                                    ),
+
+                                    // 棒グラフ部分
+                                    Positioned.fill(
+                                      child: Align(
+                                        alignment: Alignment.bottomCenter,
+                                        child: Row(
+                                          mainAxisAlignment: MainAxisAlignment.spaceAround,
+                                          crossAxisAlignment: CrossAxisAlignment.end,
+                                          children: calorieData.map((calories) {
+                                            double ratio = calories / topScaleValue;
+                                            double barHeight = chartHeight * ratio;
+                                            return Container(
+                                              width: 16,
+                                              height: barHeight > 0 ? barHeight : 0,
+                                              decoration: BoxDecoration(
+                                                color: const Color(0xFF66BB6A),
+                                                borderRadius: BorderRadius.circular(4),
+                                              ),
+                                            );
+                                          }).toList(),
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          );
+                        },
                       ),
                     ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Column(
-                        children: [
-                          Expanded(
-                            child: Stack(
-                              children: [
-                                Column(
-                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                  children: List.generate(
-                                    6,
-                                    (index) => Divider(color: Colors.grey.shade200, height: 1),
-                                  ),
-                                ),
-                                const Center(
-                                  child: Text(
-                                    '（ここに後からグラフを追加）',
-                                    style: TextStyle(color: Colors.grey, fontSize: 12),
-                                  ),
-                                ),
-                              ],
-                            ),
+                    const SizedBox(height: 8),
+                    // 下部エリア：左側に単位 (kcal)、右側に日付・曜日を配置
+                    Row(
+                      children: [
+                        const SizedBox(
+                          width: 45,
+                          child: Text(
+                            '(kcal)',
+                            style: TextStyle(fontSize: 10, color: Colors.grey),
                           ),
-                          const SizedBox(height: 8),
-                          Row(
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Row(
                             mainAxisAlignment: MainAxisAlignment.spaceAround,
                             children: List.generate(7, (index) {
                               DateTime targetDate = _currentMonday.add(Duration(days: index));
@@ -250,8 +319,8 @@ class _GraphScreenState extends State<GraphScreen> {
                               );
                             }),
                           ),
-                        ],
-                      ),
+                        ),
+                      ],
                     ),
                   ],
                 ),
@@ -261,65 +330,25 @@ class _GraphScreenState extends State<GraphScreen> {
           ),
         ),
       ),
-      bottomNavigationBar: BottomNavigationBar(
-        currentIndex: 2,
-        type: BottomNavigationBarType.fixed,
-        selectedItemColor: primaryGreen,
-        unselectedItemColor: Colors.grey,
-        onTap: (index) {
-          if (index == 2) return;
-          switch (index) {
-            case 0:
-              Navigator.pushReplacement(
-                context,
-                MaterialPageRoute(builder: (_) => const HomePage()),
-              );
-              break;
-            case 1:
-              Navigator.pushReplacement(
-                context,
-                MaterialPageRoute(builder: (_) => const MealPage()),
-              );
-              break;
-            case 3:
-              Navigator.pushReplacement(
-                context,
-                MaterialPageRoute(builder: (_) => const CalendarScreen()),
-              );
-              break;
-            case 4:
-              Navigator.pushReplacement(
-                context,
-                MaterialPageRoute(builder: (_) => const MypageScreen()),
-              );
-              break;
-          }
-        },
-        items: const [
-          BottomNavigationBarItem(icon: Icon(Icons.home), label: 'ホーム'),
-          BottomNavigationBarItem(icon: Icon(Icons.restaurant), label: '記録'),
-          BottomNavigationBarItem(icon: Icon(Icons.bar_chart), label: 'グラフ'),
-          BottomNavigationBarItem(icon: Icon(Icons.calendar_month), label: 'カレンダー'),
-          BottomNavigationBarItem(icon: Icon(Icons.person), label: 'マイページ'),
-        ],
-      ),
     );
   }
 
-  Widget _buildTabButton(String text, int index, {required bool isCategory}) {
-    bool isSelected = isCategory
-        ? (_selectedCategoryIndex == index)
-        : (_selectedPeriodIndex == index);
+  Widget _buildTabButton(String text, int index, {required bool isUpper}) {
+    bool isSelected = isUpper
+        ? (_selectedUpperIndex == index)
+        : (_selectedLowerIndex == index);
     const Color primaryGreen = Color(0xFF66BB6A);
 
     return Expanded(
       child: GestureDetector(
         onTap: () {
           setState(() {
-            if (isCategory) {
-              _selectedCategoryIndex = index;
+            if (isUpper) {
+              _selectedUpperIndex = index;
+              _selectedLowerIndex = -1; // 上段が押されたら下段の選択を解除
             } else {
-              _selectedPeriodIndex = index;
+              _selectedLowerIndex = index;
+              _selectedUpperIndex = -1; // 下段が押されたら上段の選択を解除
             }
           });
         },
