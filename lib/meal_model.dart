@@ -78,7 +78,7 @@ class DailyMeal {
   }
 }
 
-// š’Ç‰ÁFMyƒƒjƒ…[ƒ‚ƒfƒ‹
+// â˜…è¿½åŠ ï¼šMyãƒ¡ãƒ‹ãƒ¥ãƒ¼ãƒ¢ãƒ‡ãƒ«
 class MyMenu {
   final String id;
   final String title;

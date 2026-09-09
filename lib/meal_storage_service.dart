@@ -6,7 +6,7 @@ class MealStorageService {
   static const String _storageKeyPrefix = 'daily_meal_';
   static const String _myMenuKey = 'my_menu_list';
 
-  // --- “úí‚ÌH–‹L˜^ ---
+  // --- æ—¥å¸¸ã®é£Ÿäº‹è¨˜éŒ² ---
   static Future<void> saveDailyMeal(DailyMeal meal) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString('$_storageKeyPrefix${meal.date}', meal.toJson());
@@ -19,7 +19,7 @@ class MealStorageService {
     return DailyMeal.fromJson(jsonString);
   }
 
-  // --- š’Ç‰ÁFMyƒƒjƒ…[‚Ì•Û‘¶‚Æ“Ç‚İo‚µ ---
+  // --- â˜…è¿½åŠ ï¼šMyãƒ¡ãƒ‹ãƒ¥ãƒ¼ã®ä¿å­˜ã¨èª­ã¿å‡ºã— ---
   static Future<void> saveMyMenuList(List<MyMenu> menuList) async {
     final prefs = await SharedPreferences.getInstance();
     List<Map<String, dynamic>> mapList = menuList.map((m) => m.toMap()).toList();

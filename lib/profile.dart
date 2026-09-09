@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'home.dart';
 import 'models/user_profile.dart';
+import 'data/frontend_label_mapping.dart';
 import 'services/profile_service.dart';
 
 class ProfilePage extends StatefulWidget {
@@ -21,7 +22,8 @@ class _ProfilePageState extends State<ProfilePage> {
   String selectedMonth = "1";
   String selectedDay = "1";
 
-  String goal = "ダイエット";
+  // 目標ラベルはpanpanの計算エンジン(Goal enum)と揃える(減量/維持/増量/筋トレ)
+  String goal = "減量";
 
   int age = 0;
 
@@ -60,22 +62,17 @@ class _ProfilePageState extends State<ProfilePage> {
     final profile = await _profileService.loadProfile();
     if (profile == null || !mounted) return;
 
-    // 生年月日 "2000-1-1" を 年/月/日 に分解
-    final dateParts = profile.birthDate.split("-");
-
+    // panpanのUserProfileは生年月日・目標体重を持たないため、
+    // 保存済みの身長・体重・性別・目標・年齢のみを復元する。
     setState(() {
-      isMale = profile.gender == "male";
-      if (dateParts.length == 3) {
-        selectedYear = dateParts[0];
-        selectedMonth = dateParts[1];
-        selectedDay = dateParts[2];
-      }
-      goal = profile.goal;
-      heightController.text = profile.height?.toString() ?? "";
-      weightController.text = profile.weight?.toString() ?? "";
-      goalWeightController.text = profile.goalWeight?.toString() ?? "";
+      isMale = profile.gender == Gender.male;
+      goal = profile.goal.label;
+      heightController.text =
+          profile.heightCm == 0 ? "" : profile.heightCm.toString();
+      weightController.text =
+          profile.weightKg == 0 ? "" : profile.weightKg.toString();
+      age = profile.age;
     });
-    calculateAge();
   }
 
   // =========================
@@ -130,13 +127,15 @@ class _ProfilePageState extends State<ProfilePage> {
   Future<void> registerProfile() async {
     if (isSaving) return; // 二重押し防止
 
+    // okabeの入力UIから、panpanの計算エンジンが要求するUserProfileを組み立てる。
+    // 活動量の入力UIはまだ無いため、暫定でmoderate(普通)を既定値にしている。
     final profile = UserProfile(
-      gender: isMale ? "male" : "female",
-      birthDate: "$selectedYear-$selectedMonth-$selectedDay",
-      height: double.tryParse(heightController.text),
-      weight: double.tryParse(weightController.text),
-      goal: goal,
-      goalWeight: double.tryParse(goalWeightController.text),
+      heightCm: double.tryParse(heightController.text) ?? 0,
+      weightKg: double.tryParse(weightController.text) ?? 0,
+      age: age,
+      gender: isMale ? Gender.male : Gender.female,
+      activityLevel: ActivityLevel.moderate,
+      goal: parseGoalLabel(goal),
     );
 
     setState(() => isSaving = true);
@@ -150,7 +149,7 @@ class _ProfilePageState extends State<ProfilePage> {
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => const HomePage(),
+        builder: (context) => HomePage(),
       ),
     );
   }
@@ -381,8 +380,8 @@ class _ProfilePageState extends State<ProfilePage> {
               decoration: customDecoration("目標"),
               items: const [
                 DropdownMenuItem(
-                  value: "ダイエット",
-                  child: Text("ダイエット"),
+                  value: "減量",
+                  child: Text("減量"),
                 ),
                 DropdownMenuItem(
                   value: "維持",

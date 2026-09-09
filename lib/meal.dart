@@ -93,7 +93,7 @@ class _MealPageState extends State<MealPage> {
           if (index == 1) return;
           switch (index) {
             case 0:
-              Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const HomePage()));
+              Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => HomePage()));
               break;
             case 2:
               Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const GraphScreen()));

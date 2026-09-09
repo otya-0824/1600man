@@ -24,7 +24,7 @@ class ProfileService {
   Future<void> saveProfile(UserProfile profile) async {
     final doc = await _userDoc();
     // merge:true で、既存の他フィールド（食事記録の集計など）を消さずに更新
-    await doc.set(profile.toMap(), SetOptions(merge: true));
+    await doc.set(profile.toJson(), SetOptions(merge: true));
   }
 
   // プロフィールを読み込む（起動時に呼ぶ。無ければ null）
@@ -35,6 +35,6 @@ class ProfileService {
     if (data == null || !snapshot.exists) {
       return null;
     }
-    return UserProfile.fromMap(data);
+    return UserProfile.fromJson(data);
   }
 }
