@@ -1,13 +1,21 @@
 import 'package:flutter/material.dart';
 
 import 'models/meal.dart';
+import 'models/nutrition_target.dart';
 import 'services/record_service.dart';
+import 'services/nutrition_facade.dart';
 
 class HomePage extends StatelessWidget {
   HomePage({super.key});
 
   // 食事記録の取得担当（その日の合計をリアルタイムに流す）
   final RecordService _recordService = RecordService();
+
+  // 計算エンジン(panpan)との橋渡し役。プロフィールから目標値を計算する。
+  final NutritionFacade _facade = NutritionFacade();
+
+  // 目標(NutritionTarget)は表示のたびに再計算せず、一度だけ計算して使い回す。
+  late final Future<NutritionTarget?> _targetFuture = _facade.loadTarget();
 
   @override
   Widget build(BuildContext context) {
@@ -58,8 +66,18 @@ class HomePage extends StatelessWidget {
 
             const SizedBox(height: 30),
 
-            // その日の合計をFirestoreからリアルタイムに受け取って表示する
-            StreamBuilder<DailySummary>(
+            // プロフィールから計算した目標(panpanの計算エンジン)を受け取る。
+            // 目標が計算できたら分母に「/ 目標kcal」を表示する。
+            FutureBuilder<NutritionTarget?>(
+              future: _targetFuture,
+              builder: (context, targetSnap) {
+                final target = targetSnap.data;
+                final kcalDenominator = target == null
+                    ? "/ --- kcal"
+                    : "/ ${target.targetKcal.round()} kcal";
+
+                // その日の合計をFirestoreからリアルタイムに受け取って表示する
+                return StreamBuilder<DailySummary>(
               stream: _recordService.watchDailySummary(today),
               builder: (context, snapshot) {
                 final summary = snapshot.data ?? const DailySummary();
@@ -105,10 +123,10 @@ class HomePage extends StatelessWidget {
                               fontWeight: FontWeight.bold,
                             ),
                           ),
-                          // 目標カロリー(分母)はせなの計算結果が入るまで "---"
-                          const Text(
-                            "/ --- kcal",
-                            style: TextStyle(
+                          // 目標カロリー(分母)。プロフィール未登録なら "---"。
+                          Text(
+                            kcalDenominator,
+                            style: const TextStyle(
                               color: Colors.grey,
                             ),
                           ),
@@ -138,6 +156,8 @@ class HomePage extends StatelessWidget {
                       ],
                     ),
                   ],
+                );
+              },
                 );
               },
             ),

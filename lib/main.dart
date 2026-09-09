@@ -1,7 +1,16 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
+import 'package:firebase_core/firebase_core.dart';
+
+import 'firebase_options.dart';
 import 'roudo.dart';
 
-void main() {
+Future<void> main() async {
+  // Firestore(プロフィール・食事記録)を使うため、起動時にFirebaseを初期化する。
+  // これが無いと profile_service / record_service のFirestoreアクセスが失敗する。
+  WidgetsFlutterBinding.ensureInitialized();
+  await Firebase.initializeApp(
+    options: DefaultFirebaseOptions.currentPlatform,
+  );
   runApp(const MyApp());
 }
 
