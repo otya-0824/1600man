@@ -15,12 +15,12 @@ class MealPage extends StatefulWidget {
 }
 
 class _MealPageState extends State<MealPage> {
-  // 朝食・昼食・夕食・間食の各保存データを保持するマップ
-  Map<String, DailyMeal?> mealDataMap = {
-    "朝食": null,
-    "昼食": null,
-    "夕食": null,
-    "間食": null,
+  // 朝食・昼食・夕食・間食ごとに、その日の記録一覧を保持するマップ
+  Map<String, List<FoodItem>> mealDataMap = {
+    "朝食": [],
+    "昼食": [],
+    "夕食": [],
+    "間食": [],
   };
 
   @override
@@ -29,17 +29,16 @@ class _MealPageState extends State<MealPage> {
     _loadAllMeals();
   }
 
-  // 当日の各食事データを独立して全取得
+  // 当日の記録をローカル(SharedPreferences)から食事区分ごとに読み込む
   Future<void> _loadAllMeals() async {
-    DateTime now = DateTime.now();
-    String dateStr = "${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}";
+    final ds = MealStorageService.dateStr(DateTime.now());
 
-    Map<String, DailyMeal?> tempMap = {};
-    for (String type in ["朝食", "昼食", "夕食", "間食"]) {
-      String storageKey = "${dateStr}_$type";
-      DailyMeal? meal = await MealStorageService.getDailyMeal(storageKey);
-      tempMap[type] = meal;
+    final tempMap = <String, List<FoodItem>>{};
+    for (final type in MealStorageService.mealTypes) {
+      final meal = await MealStorageService.getDailyMeal("${ds}_$type");
+      tempMap[type] = meal?.foods ?? [];
     }
+    if (!mounted) return;
 
     setState(() {
       mealDataMap = tempMap;
@@ -119,8 +118,7 @@ class _MealPageState extends State<MealPage> {
 
   // 各食事カードのコンポーネント
   Widget _buildMealCard(String mealType, IconData icon, Color primaryColor) {
-    DailyMeal? meal = mealDataMap[mealType];
-    List<FoodItem> foods = meal?.foods ?? [];
+    List<FoodItem> foods = mealDataMap[mealType] ?? [];
     int totalCalories = foods.fold(0, (sum, item) => sum + item.calorie);
 
     return Card(

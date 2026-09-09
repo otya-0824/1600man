@@ -8,6 +8,9 @@ class Meal {
   final double protein; // P (g)
   final double fat; // F (g)
   final double carbo; // C (g)
+  final double vitamin; // ビタミン (mg)。手動入力で付与される
+  final double mineral; // ミネラル (mg)。手動入力で付与される
+  final String amount; // 表示用の量（"150g"/"1個" など）。記録一覧の再現に使う
   final DateTime time; // 食べた時刻
   final String? mealType; // 食事区分（"朝食"/"昼食"/"夕食"/"間食"）。記録画面から付与する
 
@@ -18,6 +21,9 @@ class Meal {
     required this.protein,
     required this.fat,
     required this.carbo,
+    this.vitamin = 0,
+    this.mineral = 0,
+    this.amount = "",
     required this.time,
     this.mealType,
   });
@@ -30,6 +36,9 @@ class Meal {
       "protein": protein,
       "fat": fat,
       "carbo": carbo,
+      "vitamin": vitamin,
+      "mineral": mineral,
+      "amount": amount,
       "time": time.toIso8601String(),
       "mealType": mealType,
     };
@@ -44,6 +53,9 @@ class Meal {
       protein: (map["protein"] as num?)?.toDouble() ?? 0,
       fat: (map["fat"] as num?)?.toDouble() ?? 0,
       carbo: (map["carbo"] as num?)?.toDouble() ?? 0,
+      vitamin: (map["vitamin"] as num?)?.toDouble() ?? 0,
+      mineral: (map["mineral"] as num?)?.toDouble() ?? 0,
+      amount: map["amount"] as String? ?? "",
       time: DateTime.tryParse(map["time"] as String? ?? "") ?? DateTime.now(),
       mealType: map["mealType"] as String?,
     );
@@ -56,28 +68,36 @@ class DailySummary {
   final double totalProtein;
   final double totalFat;
   final double totalCarbo;
+  final double totalVitamin;
+  final double totalMineral;
 
   const DailySummary({
     this.totalCalorie = 0,
     this.totalProtein = 0,
     this.totalFat = 0,
     this.totalCarbo = 0,
+    this.totalVitamin = 0,
+    this.totalMineral = 0,
   });
 
   // 食事リストから合計を計算する
   factory DailySummary.fromMeals(List<Meal> meals) {
-    double c = 0, p = 0, f = 0, carb = 0;
+    double c = 0, p = 0, f = 0, carb = 0, vit = 0, min = 0;
     for (final m in meals) {
       c += m.calorie;
       p += m.protein;
       f += m.fat;
       carb += m.carbo;
+      vit += m.vitamin;
+      min += m.mineral;
     }
     return DailySummary(
       totalCalorie: c,
       totalProtein: p,
       totalFat: f,
       totalCarbo: carb,
+      totalVitamin: vit,
+      totalMineral: min,
     );
   }
 }

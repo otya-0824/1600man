@@ -95,4 +95,34 @@ class RecordService {
   Stream<DailySummary> watchDailySummary(DateTime date) {
     return watchMeals(date).map((meals) => DailySummary.fromMeals(meals));
   }
+
+  // 期間内(start〜endの各日)の合計をまとめて取得する。
+  // グラフ画面（週/月の推移）・カレンダー画面（日ごとの達成度）で使う。
+  // 戻り値のキーは dateKey("2026-08-30") 形式。
+  Future<Map<String, DailySummary>> fetchSummariesInRange(
+    DateTime start,
+    DateTime end,
+  ) async {
+    final uid = await _authService.ensureUid();
+    final result = <String, DailySummary>{};
+
+    // 日付をまたいで1日ずつ取得する（日付ドキュメント単位で保存しているため）
+    var day = DateTime(start.year, start.month, start.day);
+    final last = DateTime(end.year, end.month, end.day);
+    while (!day.isAfter(last)) {
+      final snapshot = await _db
+          .collection("users")
+          .doc(uid)
+          .collection("records")
+          .doc(dateKey(day))
+          .collection("meals")
+          .get();
+      final meals = snapshot.docs
+          .map((doc) => Meal.fromMap(doc.id, doc.data()))
+          .toList();
+      result[dateKey(day)] = DailySummary.fromMeals(meals);
+      day = day.add(const Duration(days: 1));
+    }
+    return result;
+  }
 }

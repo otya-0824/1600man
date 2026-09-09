@@ -2,24 +2,30 @@ import 'package:flutter/material.dart';
 
 import 'models/meal.dart';
 import 'models/nutrition_target.dart';
-import 'services/record_service.dart';
 import 'services/nutrition_facade.dart';
+import 'meal_storage_service.dart';
+import 'meal.dart';
+import 'gurahu.dart';
+import 'calendar.dart';
+import 'mypage.dart';
 
 class HomePage extends StatelessWidget {
   HomePage({super.key});
 
-  // 食事記録の取得担当（その日の合計をリアルタイムに流す）
-  final RecordService _recordService = RecordService();
-
   // 計算エンジン(panpan)との橋渡し役。プロフィールから目標値を計算する。
   final NutritionFacade _facade = NutritionFacade();
+
+  // その日の合計はローカル(SharedPreferences)から集計する。
+  final DateTime _today = DateTime.now();
+  late final Future<DailySummary> _summaryFuture =
+      MealStorageService.getDailySummary(_today);
 
   // 目標(NutritionTarget)は表示のたびに再計算せず、一度だけ計算して使い回す。
   late final Future<NutritionTarget?> _targetFuture = _facade.loadTarget();
 
   @override
   Widget build(BuildContext context) {
-    final today = DateTime.now();
+    final today = _today;
 
     return Scaffold(
       backgroundColor: Colors.white,
@@ -76,9 +82,9 @@ class HomePage extends StatelessWidget {
                     ? "/ --- kcal"
                     : "/ ${target.targetKcal.round()} kcal";
 
-                // その日の合計をFirestoreからリアルタイムに受け取って表示する
-                return StreamBuilder<DailySummary>(
-              stream: _recordService.watchDailySummary(today),
+                // その日の合計をローカル集計から受け取って表示する
+                return FutureBuilder<DailySummary>(
+              future: _summaryFuture,
               builder: (context, snapshot) {
                 final summary = snapshot.data ?? const DailySummary();
                 final hasData = snapshot.hasData;
@@ -200,9 +206,39 @@ class HomePage extends StatelessWidget {
       ),
 
       bottomNavigationBar: BottomNavigationBar(
+        type: BottomNavigationBarType.fixed,
         selectedItemColor: Colors.green,
         unselectedItemColor: Colors.grey,
         currentIndex: 0,
+        onTap: (index) {
+          if (index == 0) return; // 現在ホームなので何もしない
+          switch (index) {
+            case 1:
+              Navigator.pushReplacement(
+                context,
+                MaterialPageRoute(builder: (_) => const MealPage()),
+              );
+              break;
+            case 2:
+              Navigator.pushReplacement(
+                context,
+                MaterialPageRoute(builder: (_) => const GraphScreen()),
+              );
+              break;
+            case 3:
+              Navigator.pushReplacement(
+                context,
+                MaterialPageRoute(builder: (_) => const CalendarScreen()),
+              );
+              break;
+            case 4:
+              Navigator.pushReplacement(
+                context,
+                MaterialPageRoute(builder: (_) => const MypageScreen()),
+              );
+              break;
+          }
+        },
         items: const [
           BottomNavigationBarItem(
             icon: Icon(Icons.home),
@@ -215,6 +251,10 @@ class HomePage extends StatelessWidget {
           BottomNavigationBarItem(
             icon: Icon(Icons.bar_chart),
             label: "グラフ",
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.calendar_month),
+            label: "カレンダー",
           ),
           BottomNavigationBarItem(
             icon: Icon(Icons.person),

@@ -3,9 +3,7 @@ import 'meal_model.dart';
 import 'meal_storage_service.dart';
 import 'my_menu_create.dart';
 import 'models/food_item.dart' as db; // panpanの食品DBモデル(FoodItem名が衝突するため接頭辞付き)
-import 'models/meal.dart';
 import 'services/nutrition_facade.dart';
-import 'services/record_service.dart';
 
 class MealDetailPage extends StatefulWidget {
   final String mealType; // "朝食", "昼食", "夕食", "間食" などを受け取る
@@ -80,39 +78,15 @@ class _MealDetailPageState extends State<MealDetailPage> {
     });
   }
 
-  // 当日の記録＆履歴データの取得（日付 + 食事区分で完全に個別管理）
+  // 当日・当該食事区分の記録をローカル(SharedPreferences)から取得する
   Future<void> _loadSavedDataAndHistory() async {
-    DateTime now = DateTime.now();
-    String dateStr = "${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}";
-    String storageKey = "${dateStr}_${widget.mealType}";
+    final now = DateTime.now();
+    final key = "${MealStorageService.dateStr(now)}_${widget.mealType}";
+    final saved = await MealStorageService.getDailyMeal(key);
+    if (!mounted) return;
 
-    DailyMeal? savedMeal = await MealStorageService.getDailyMeal(storageKey);
-    
-    if (savedMeal != null) {
-      setState(() {
-        selectedFoods = savedMeal.foods.map((food) => {
-          "name": food.name,
-          "amount": food.amount,
-          "calorie": food.calorie,
-          "protein": food.protein,
-          "fat": food.fat,
-          "carbs": food.carbs,
-          "vitamin": food.vitamin,
-          "mineral": food.mineral,
-          "icon": Icons.restaurant,
-        }).toList();
-      });
-    } else {
-      // 該当する食事区分に保存データがない場合は空リストでリセット
-      setState(() {
-        selectedFoods = [];
-      });
-    }
-
-    List<Map<String, dynamic>> historyItems = [];
-    if (savedMeal != null) {
-      for (var f in savedMeal.foods) {
-        historyItems.add({
+    // 保存済みの FoodItem を、この画面が扱う Map 形式に変換する
+    Map<String, dynamic> toItem(FoodItem f, IconData icon) => {
           "name": f.name,
           "amount": f.amount,
           "calorie": f.calorie,
@@ -121,13 +95,14 @@ class _MealDetailPageState extends State<MealDetailPage> {
           "carbs": f.carbs,
           "vitamin": f.vitamin,
           "mineral": f.mineral,
-          "icon": Icons.history,
-        });
-      }
-    }
+          "icon": icon,
+        };
 
+    final foods = saved?.foods ?? <FoodItem>[];
     setState(() {
-      foodCandidates[1] = historyItems;
+      selectedFoods = foods.map((f) => toItem(f, Icons.restaurant)).toList();
+      // 「履歴」タブには当日の記録を並べる
+      foodCandidates[1] = foods.map((f) => toItem(f, Icons.history)).toList();
     });
   }
 
@@ -438,11 +413,14 @@ class _MealDetailPageState extends State<MealDetailPage> {
                   height: 48,
                   child: ElevatedButton(
                     onPressed: () async {
-                      List<FoodItem> foodList = selectedFoods.map((item) {
+                      // 食事記録は端末内(SharedPreferences)にローカル保存する。
+                      // 日付×食事区分のキーで、その区分を丸ごと置き換える。
+                      final now = DateTime.now();
+                      final foods = selectedFoods.map((item) {
                         return FoodItem(
                           name: item["name"] ?? "",
-                          amount: item["amount"] ?? "1食",
-                          calorie: item["calorie"] ?? 0,
+                          amount: item["amount"]?.toString() ?? "1食",
+                          calorie: (item["calorie"] as num?)?.toInt() ?? 0,
                           protein: (item["protein"] ?? 0.0).toDouble(),
                           fat: (item["fat"] ?? 0.0).toDouble(),
                           carbs: (item["carbs"] ?? 0.0).toDouble(),
@@ -451,37 +429,24 @@ class _MealDetailPageState extends State<MealDetailPage> {
                         );
                       }).toList();
 
-                      DateTime now = DateTime.now();
-                      String dateStr = "${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}";
-                      String storageKey = "${dateStr}_${widget.mealType}";
+                      final key =
+                          "${MealStorageService.dateStr(now)}_${widget.mealType}";
 
-                      DailyMeal dailyMeal = DailyMeal(
-                        date: storageKey,
-                        foods: foodList,
-                      );
-                      await MealStorageService.saveDailyMeal(dailyMeal);
-
-                      // ホーム画面の集計元であるFirestoreにも反映する。
-                      // 同じ食事区分を置き換える形で保存し、二重計上を防ぐ。
-                      final okabeMeals = selectedFoods
-                          .map((item) => Meal(
-                                name: item["name"] ?? "",
-                                calorie: (item["calorie"] ?? 0).toDouble(),
-                                protein: (item["protein"] ?? 0.0).toDouble(),
-                                fat: (item["fat"] ?? 0.0).toDouble(),
-                                carbo: (item["carbs"] ?? 0.0).toDouble(),
-                                time: now,
-                                mealType: widget.mealType,
-                              ))
-                          .toList();
                       try {
-                        await RecordService().replaceMealsForType(
-                          now,
-                          widget.mealType,
-                          okabeMeals,
+                        await MealStorageService.saveDailyMeal(
+                          DailyMeal(date: key, foods: foods),
                         );
-                      } catch (_) {
-                        // Firestore未接続などでも、ローカル保存は成立させる
+                      } catch (e) {
+                        // 保存に失敗したら無言で閉じず、原因を画面に出す
+                        if (context.mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text("保存に失敗しました: $e"),
+                              backgroundColor: Colors.red,
+                            ),
+                          );
+                        }
+                        return;
                       }
 
                       if (context.mounted) {

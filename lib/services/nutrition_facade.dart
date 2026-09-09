@@ -37,9 +37,15 @@ class NutritionFacade {
   /// Firestoreに保存済みのプロフィールから目標(NutritionTarget)を計算する。
   /// プロフィール未登録の場合は null を返す。
   Future<NutritionTarget?> loadTarget() async {
-    final profile = await _profileService.loadProfile();
-    if (profile == null) return null;
-    return _targetService.calculate(profile);
+    try {
+      final profile = await _profileService.loadProfile();
+      if (profile == null) return null;
+      return _targetService.calculate(profile);
+    } catch (_) {
+      // プロフィール取得に失敗(ログイン未整備など)しても、
+      // 目標なし(null)として扱い、画面全体は落とさない。
+      return null;
+    }
   }
 
   /// 手元のプロフィールから直接目標を計算する。

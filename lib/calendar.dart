@@ -3,6 +3,10 @@ import 'meal.dart';
 import 'gurahu.dart';
 import 'home.dart';
 import 'mypage.dart';
+import 'models/meal.dart';
+import 'models/nutrition_target.dart';
+import 'meal_storage_service.dart';
+import 'services/nutrition_facade.dart';
 
 class CalendarScreen extends StatefulWidget {
   const CalendarScreen({super.key});
@@ -15,25 +19,69 @@ class _CalendarScreenState extends State<CalendarScreen> {
   int _currentYear = 2026;
   int _currentMonth = 8;
 
-  void _changeMonth(int offset) {
+  final NutritionFacade _facade = NutritionFacade();
+
+  // 表示中の月の日次サマリー（キーは "2026-08-30" 形式）と目標値
+  Map<String, DailySummary> _summaries = {};
+  NutritionTarget? _target;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadMonth();
+  }
+
+  // 表示中の月の全日分の記録と目標をまとめて取得する
+  Future<void> _loadMonth() async {
+    final first = DateTime(_currentYear, _currentMonth, 1);
+    final last = DateTime(_currentYear, _currentMonth + 1, 0);
+    final summaries =
+        await MealStorageService.getSummariesInRange(first, last);
+    final target = await _facade.loadTarget();
+    if (!mounted) return;
     setState(() {
-      int newMonth = _currentMonth + offset;
-      int newYear = _currentYear;
+      _summaries = summaries;
+      _target = target;
+    });
+  }
 
-      if (newMonth > 12) {
-        newMonth = 1;
-        newYear++;
-      } else if (newMonth < 1) {
-        newMonth = 12;
-        newYear--;
-      }
+  void _changeMonth(int offset) {
+    int newMonth = _currentMonth + offset;
+    int newYear = _currentYear;
 
-      if (newYear > 2090 || (newYear == 2090 && newMonth > 12)) return;
-      if (newYear < 2026 || (newYear == 2026 && newMonth < 8)) return;
+    if (newMonth > 12) {
+      newMonth = 1;
+      newYear++;
+    } else if (newMonth < 1) {
+      newMonth = 12;
+      newYear--;
+    }
 
+    if (newYear > 2090 || (newYear == 2090 && newMonth > 12)) return;
+    if (newYear < 2026 || (newYear == 2026 && newMonth < 8)) return;
+
+    setState(() {
       _currentYear = newYear;
       _currentMonth = newMonth;
     });
+    _loadMonth();
+  }
+
+  // その日の達成度に応じた色を返す（記録なし・目標なしは null）
+  Color? _statusColor(int year, int month, int day) {
+    final summary = _summaries[MealStorageService.dateStr(DateTime(year, month, day))];
+    if (summary == null || summary.totalCalorie <= 0) return null;
+
+    final target = _target;
+    // 目標未登録でも「記録あり」は分かるように達成色を出す
+    if (target == null || target.targetKcal <= 0) {
+      return const Color(0xFF66BB6A);
+    }
+
+    final ratio = summary.totalCalorie / target.targetKcal;
+    if (ratio >= 0.9) return const Color(0xFF66BB6A); // 達成
+    if (ratio >= 0.7) return const Color(0xFFFFCA28); // やや不足
+    return const Color(0xFFEF5350); // 不足
   }
 
   @override
@@ -222,6 +270,21 @@ class _CalendarScreenState extends State<CalendarScreen> {
                               color: Colors.black87,
                               fontWeight: FontWeight.w500,
                             ),
+                          ),
+                          const SizedBox(height: 4),
+                          // その日の達成度ドット（記録なしは非表示）
+                          Builder(
+                            builder: (_) {
+                              final color = _statusColor(year, month, day);
+                              return Container(
+                                width: 8,
+                                height: 8,
+                                decoration: BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  color: color ?? Colors.transparent,
+                                ),
+                              );
+                            },
                           ),
                         ],
                       )

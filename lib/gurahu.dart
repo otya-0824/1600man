@@ -1,8 +1,13 @@
-﻿import 'package:flutter/material.dart';
+import 'dart:math';
+import 'package:flutter/material.dart';
 import 'meal.dart';
 import 'home.dart';
 import 'calendar.dart';
 import 'mypage.dart';
+import 'models/meal.dart';
+import 'models/nutrition_target.dart';
+import 'meal_storage_service.dart';
+import 'services/nutrition_facade.dart';
 
 class GraphScreen extends StatefulWidget {
   const GraphScreen({super.key});
@@ -12,18 +17,26 @@ class GraphScreen extends StatefulWidget {
 }
 
 class _GraphScreenState extends State<GraphScreen> {
-  int _selectedCategoryIndex = 0;
-  int _selectedPeriodIndex = 0;
+  int _selectedCategoryIndex = 0; // 0:カロリー 1:PFC 2:栄養素
+  int _selectedPeriodIndex = 1; // 0:1日 1:1週間 2:1ヶ月
 
   final DateTime _minDate = DateTime(2026, 8, 20);
   final DateTime _maxDate = DateTime(2090, 12, 31);
-  
+
   late DateTime _currentMonday;
+
+  final NutritionFacade _facade = NutritionFacade();
+
+  // 取得済みの日次サマリー（キーは "2026-08-30" 形式）と目標値
+  Map<String, DailySummary> _summaries = {};
+  NutritionTarget? _target;
+  bool _loading = true;
 
   @override
   void initState() {
     super.initState();
     _currentMonday = _getMondayOfWeek(DateTime(2026, 8, 20));
+    _loadData();
   }
 
   DateTime _getMondayOfWeek(DateTime date) {
@@ -31,29 +44,64 @@ class _GraphScreenState extends State<GraphScreen> {
     return date.subtract(Duration(days: daysToSubtract));
   }
 
-  void _nextWeek() {
+  // 選択中の期間に応じて、グラフに並べる対象日リストを作る
+  List<DateTime> _targetDays() {
+    switch (_selectedPeriodIndex) {
+      case 0: // 1日：今日のみ
+        final now = DateTime.now();
+        return [DateTime(now.year, now.month, now.day)];
+      case 2: // 1ヶ月：今月の全日
+        final now = DateTime.now();
+        final daysInMonth = DateTime(now.year, now.month + 1, 0).day;
+        return List.generate(
+          daysInMonth,
+          (i) => DateTime(now.year, now.month, i + 1),
+        );
+      default: // 1週間：表示中の週（月〜日）
+        return List.generate(
+          7,
+          (i) => _currentMonday.add(Duration(days: i)),
+        );
+    }
+  }
+
+  Future<void> _loadData() async {
+    setState(() => _loading = true);
+    final days = _targetDays();
+    final summaries =
+        await MealStorageService.getSummariesInRange(days.first, days.last);
+    final target = await _facade.loadTarget();
+    if (!mounted) return;
     setState(() {
-      DateTime nextMonday = _currentMonday.add(const Duration(days: 7));
-      if (nextMonday.isBefore(_maxDate) || nextMonday.isAtSameMomentAs(_maxDate)) {
-        _currentMonday = nextMonday;
-      }
+      _summaries = summaries;
+      _target = target;
+      _loading = false;
     });
+  }
+
+  void _nextWeek() {
+    final nextMonday = _currentMonday.add(const Duration(days: 7));
+    if (nextMonday.isBefore(_maxDate) ||
+        nextMonday.isAtSameMomentAs(_maxDate)) {
+      setState(() => _currentMonday = nextMonday);
+      _loadData();
+    }
   }
 
   void _prevWeek() {
+    final prevMonday = _currentMonday.subtract(const Duration(days: 7));
+    final limitMonday = _getMondayOfWeek(_minDate);
     setState(() {
-      DateTime prevMonday = _currentMonday.subtract(const Duration(days: 7));
-      DateTime limitMonday = _getMondayOfWeek(_minDate);
-      if (prevMonday.isAfter(limitMonday) || prevMonday.isAtSameMomentAs(limitMonday)) {
-        _currentMonday = prevMonday;
-      } else {
-        _currentMonday = limitMonday;
-      }
+      _currentMonday = (prevMonday.isAfter(limitMonday) ||
+              prevMonday.isAtSameMomentAs(limitMonday))
+          ? prevMonday
+          : limitMonday;
     });
+    _loadData();
   }
 
   String _formatDateRange() {
-    DateTime sunday = _currentMonday.add(const Duration(days: 6));
+    final sunday = _currentMonday.add(const Duration(days: 6));
     return '${_currentMonday.month}/${_currentMonday.day} (月) 〜 ${sunday.month}/${sunday.day} (日)';
   }
 
@@ -62,12 +110,50 @@ class _GraphScreenState extends State<GraphScreen> {
     return weekdays[date.weekday - 1];
   }
 
+  // 選択カテゴリに応じて、その日の値を取り出す
+  double _valueOf(DailySummary s) {
+    switch (_selectedCategoryIndex) {
+      case 1: // PFC（P+F+Cのグラム合計）
+        return s.totalProtein + s.totalFat + s.totalCarbo;
+      case 2: // 栄養素（ビタミン+ミネラルのmg合計）
+        return s.totalVitamin + s.totalMineral;
+      default: // カロリー
+        return s.totalCalorie;
+    }
+  }
+
+  // 選択カテゴリの目標値（栄養素は目標を持たないため null）
+  double? _targetValue() {
+    final t = _target;
+    if (t == null) return null;
+    switch (_selectedCategoryIndex) {
+      case 1:
+        return t.targetProtein + t.targetFat + t.targetCarbohydrate;
+      case 2:
+        return null;
+      default:
+        return t.targetKcal;
+    }
+  }
+
+  String _unit() {
+    switch (_selectedCategoryIndex) {
+      case 1:
+      case 2:
+        return 'g';
+      default:
+        return 'kcal';
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
-    DateTime limitMonday = _getMondayOfWeek(_minDate);
-    bool canGoPrev = _currentMonday.isAfter(limitMonday);
-    bool canGoNext = _currentMonday.add(const Duration(days: 7)).isBefore(_maxDate);
+    final limitMonday = _getMondayOfWeek(_minDate);
+    final canGoPrev = _currentMonday.isAfter(limitMonday);
+    final canGoNext =
+        _currentMonday.add(const Duration(days: 7)).isBefore(_maxDate);
     const Color primaryGreen = Color(0xFF66BB6A);
+    final bool showWeekNav = _selectedPeriodIndex == 1;
 
     return Scaffold(
       backgroundColor: Colors.white,
@@ -76,9 +162,7 @@ class _GraphScreenState extends State<GraphScreen> {
         elevation: 0,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back_ios, color: Colors.black54, size: 18),
-          onPressed: () {
-            Navigator.pop(context);
-          },
+          onPressed: () => Navigator.pop(context),
         ),
         centerTitle: true,
         title: const Text(
@@ -117,145 +201,47 @@ class _GraphScreenState extends State<GraphScreen> {
               ),
               const SizedBox(height: 16),
 
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  IconButton(
-                    icon: Icon(
-                      Icons.chevron_left,
-                      color: canGoPrev ? Colors.grey.shade700 : Colors.grey.shade300,
-                    ),
-                    onPressed: canGoPrev ? _prevWeek : null,
-                  ),
-                  Flexible(
-                    child: Text(
-                      _formatDateRange(),
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        fontSize: 13,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.black87,
-                      ),
-                    ),
-                  ),
-                  IconButton(
-                    icon: Icon(
-                      Icons.chevron_right,
-                      color: canGoNext ? Colors.grey.shade700 : Colors.grey.shade300,
-                    ),
-                    onPressed: canGoNext ? _nextWeek : null,
-                  ),
-                ],
-              ),
-              const SizedBox(height: 12),
-
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                children: [
-                  Column(
-                    children: const [
-                      Text('平均', style: TextStyle(fontSize: 11, color: Colors.grey)),
-                      SizedBox(height: 2),
-                      Text(
-                        '-- kcal',
-                        style: TextStyle(
-                          fontSize: 15,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.black45,
-                        ),
-                      ),
-                    ],
-                  ),
-                  Container(
-                    height: 24,
-                    width: 1,
-                    color: Colors.grey.shade300,
-                  ),
-                  Column(
-                    children: const [
-                      Text('目標', style: TextStyle(fontSize: 11, color: Colors.grey)),
-                      SizedBox(height: 2),
-                      Text(
-                        '-- kcal',
-                        style: TextStyle(
-                          fontSize: 15,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.black45,
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-              const SizedBox(height: 16),
-
-              Container(
-                height: 240,
-                padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: Colors.grey.shade200),
-                ),
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.end,
+              if (showWeekNav)
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    SizedBox(
-                      width: 40,
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        crossAxisAlignment: CrossAxisAlignment.end,
-                        children: const [
-                          Text('(kcal)', style: TextStyle(fontSize: 10, color: Colors.grey)),
-                          Text('2,500', style: TextStyle(fontSize: 10, color: Colors.grey)),
-                          Text('2,000', style: TextStyle(fontSize: 10, color: Colors.grey)),
-                          Text('1,500', style: TextStyle(fontSize: 10, color: Colors.grey)),
-                          Text('1,000', style: TextStyle(fontSize: 10, color: Colors.grey)),
-                          Text('500', style: TextStyle(fontSize: 10, color: Colors.grey)),
-                          Text('0', style: TextStyle(fontSize: 10, color: Colors.grey)),
-                        ],
+                    IconButton(
+                      icon: Icon(
+                        Icons.chevron_left,
+                        color: canGoPrev
+                            ? Colors.grey.shade700
+                            : Colors.grey.shade300,
+                      ),
+                      onPressed: canGoPrev ? _prevWeek : null,
+                    ),
+                    Flexible(
+                      child: Text(
+                        _formatDateRange(),
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.black87,
+                        ),
                       ),
                     ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Column(
-                        children: [
-                          Expanded(
-                            child: Stack(
-                              children: [
-                                Column(
-                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                  children: List.generate(
-                                    6,
-                                    (index) => Divider(color: Colors.grey.shade200, height: 1),
-                                  ),
-                                ),
-                                const Center(
-                                  child: Text(
-                                    '（ここに後からグラフを追加）',
-                                    style: TextStyle(color: Colors.grey, fontSize: 12),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                          const SizedBox(height: 8),
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceAround,
-                            children: List.generate(7, (index) {
-                              DateTime targetDate = _currentMonday.add(Duration(days: index));
-                              return _DayLabel(
-                                day: '${targetDate.day}',
-                                weekDay: _getWeekDay(targetDate),
-                              );
-                            }),
-                          ),
-                        ],
+                    IconButton(
+                      icon: Icon(
+                        Icons.chevron_right,
+                        color: canGoNext
+                            ? Colors.grey.shade700
+                            : Colors.grey.shade300,
                       ),
+                      onPressed: canGoNext ? _nextWeek : null,
                     ),
                   ],
                 ),
-              ),
+              const SizedBox(height: 12),
+
+              _buildAverageAndTarget(),
+              const SizedBox(height: 16),
+
+              _buildChart(primaryGreen),
               const SizedBox(height: 30),
             ],
           ),
@@ -306,8 +292,189 @@ class _GraphScreenState extends State<GraphScreen> {
     );
   }
 
+  // 平均・目標の数値表示
+  Widget _buildAverageAndTarget() {
+    final days = _targetDays();
+    final values = days
+        .map((d) => _valueOf(_summaries[MealStorageService.dateStr(d)] ??
+            const DailySummary()))
+        .toList();
+    final recorded = values.where((v) => v > 0).toList();
+    final avg = recorded.isEmpty
+        ? 0.0
+        : recorded.reduce((a, b) => a + b) / recorded.length;
+    final target = _targetValue();
+    final unit = _unit();
+
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+      children: [
+        Column(
+          children: [
+            const Text('平均', style: TextStyle(fontSize: 11, color: Colors.grey)),
+            const SizedBox(height: 2),
+            Text(
+              recorded.isEmpty ? '-- $unit' : '${avg.round()} $unit',
+              style: const TextStyle(
+                fontSize: 15,
+                fontWeight: FontWeight.bold,
+                color: Colors.black87,
+              ),
+            ),
+          ],
+        ),
+        Container(height: 24, width: 1, color: Colors.grey.shade300),
+        Column(
+          children: [
+            const Text('目標', style: TextStyle(fontSize: 11, color: Colors.grey)),
+            const SizedBox(height: 2),
+            Text(
+              target == null ? '-- $unit' : '${target.round()} $unit',
+              style: const TextStyle(
+                fontSize: 15,
+                fontWeight: FontWeight.bold,
+                color: Colors.black87,
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  // 日次バーチャート本体
+  Widget _buildChart(Color primaryGreen) {
+    final days = _targetDays();
+    final values = days
+        .map((d) => _valueOf(_summaries[MealStorageService.dateStr(d)] ??
+            const DailySummary()))
+        .toList();
+    final target = _targetValue();
+
+    // 天井（バーの最大高さの基準）。目標とデータ最大の大きい方を使う。
+    double maxV = 0;
+    for (final v in values) {
+      maxV = max(maxV, v);
+    }
+    if (target != null) maxV = max(maxV, target);
+    if (maxV <= 0) maxV = 1; // 全て0のときの保険
+
+    const double chartHeight = 180;
+    final unit = _unit();
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 12),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.grey.shade200),
+      ),
+      child: _loading
+          ? const SizedBox(
+              height: chartHeight + 40,
+              child: Center(child: CircularProgressIndicator()),
+            )
+          : Column(
+              children: [
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: Text(
+                    '($unit)',
+                    style: const TextStyle(fontSize: 10, color: Colors.grey),
+                  ),
+                ),
+                SizedBox(
+                  height: chartHeight,
+                  child: Stack(
+                    children: [
+                      // 目標ライン（点線代わりの細い線）
+                      if (target != null)
+                        Positioned(
+                          left: 0,
+                          right: 0,
+                          bottom: chartHeight * (target / maxV),
+                          child: Container(
+                            height: 1.5,
+                            color: Colors.orange.withValues(alpha: 0.7),
+                          ),
+                        ),
+                      // バー
+                      SingleChildScrollView(
+                        scrollDirection: Axis.horizontal,
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.end,
+                          children: List.generate(days.length, (i) {
+                            final v = values[i];
+                            final barHeight = chartHeight * (v / maxV);
+                            final reached =
+                                target != null && v >= target && target > 0;
+                            return Container(
+                              width: days.length > 10 ? 14 : 36,
+                              margin: const EdgeInsets.symmetric(horizontal: 3),
+                              child: Column(
+                                mainAxisAlignment: MainAxisAlignment.end,
+                                children: [
+                                  if (v > 0)
+                                    Text(
+                                      '${v.round()}',
+                                      style: const TextStyle(
+                                        fontSize: 8,
+                                        color: Colors.black54,
+                                      ),
+                                    ),
+                                  Container(
+                                    height: barHeight < 2 && v > 0
+                                        ? 2
+                                        : barHeight,
+                                    decoration: BoxDecoration(
+                                      color: reached
+                                          ? primaryGreen
+                                          : primaryGreen.withValues(alpha: 0.55),
+                                      borderRadius:
+                                          const BorderRadius.vertical(
+                                        top: Radius.circular(4),
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            );
+                          }),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 6),
+                // 日付ラベル
+                SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  child: Row(
+                    children: List.generate(days.length, (i) {
+                      final d = days[i];
+                      final wide = days.length <= 10;
+                      return Container(
+                        width: days.length > 10 ? 20 : 42,
+                        alignment: Alignment.center,
+                        child: wide
+                            ? _DayLabel(day: '${d.day}', weekDay: _getWeekDay(d))
+                            : Text(
+                                // 1ヶ月表示は5日ごとに数字を出す
+                                (d.day == 1 || d.day % 5 == 0) ? '${d.day}' : '',
+                                style: const TextStyle(
+                                    fontSize: 9, color: Colors.grey),
+                              ),
+                      );
+                    }),
+                  ),
+                ),
+              ],
+            ),
+    );
+  }
+
   Widget _buildTabButton(String text, int index, {required bool isCategory}) {
-    bool isSelected = isCategory
+    final bool isSelected = isCategory
         ? (_selectedCategoryIndex == index)
         : (_selectedPeriodIndex == index);
     const Color primaryGreen = Color(0xFF66BB6A);
@@ -322,6 +489,8 @@ class _GraphScreenState extends State<GraphScreen> {
               _selectedPeriodIndex = index;
             }
           });
+          // 期間を変えたらデータを取り直す
+          if (!isCategory) _loadData();
         },
         child: Container(
           padding: const EdgeInsets.symmetric(vertical: 8),
