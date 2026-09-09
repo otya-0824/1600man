@@ -118,11 +118,12 @@ class _ProfilePageState extends State<ProfilePage> {
     });
 
     // 登録完了後にホームではなくマイページへ遷移
-    Navigator.pushReplacement(
+Navigator.pushAndRemoveUntil(
       context,
       MaterialPageRoute(
         builder: (context) => const MypageScreen(),
       ),
+      (route) => false,
     );
   }
 
