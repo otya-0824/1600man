@@ -25,9 +25,11 @@ class NutritionFacade {
   final CalorieTargetService _targetService = CalorieTargetService();
   final FoodSearchService _searchService = FoodSearchService();
 
-  // 食品DB(約2500件)は起動後に一度だけ読み込んで使い回す。
-  List<FoodItem>? _foods;
-  MealCalculationService? _calcService;
+  // 食品DB(約2500件・約2MB)はアプリ全体で一度だけ読み込んで共有する。
+  // インスタンスごとに読み直すと、記録画面を開くたびにJSONを再パースして
+  // しまうため、static に持たせて使い回す(READMEの「起動時1回でよい」に対応)。
+  static List<FoodItem>? _foods;
+  static MealCalculationService? _calcService;
 
   // ------------------------------------------------------------
   // ①② 保存済みプロフィール → 目標栄養素

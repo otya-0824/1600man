@@ -1,5 +1,4 @@
 ﻿import 'package:flutter/material.dart';
-import 'roudo.dart';
 
 void main() {
   runApp(const CaloMimicApp());

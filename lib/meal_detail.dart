@@ -58,6 +58,21 @@ class _MealDetailPageState extends State<MealDetailPage> {
     _loadMyMenuList();
   }
 
+  @override
+  void dispose() {
+    // 入力用コントローラーを破棄してメモリリークを防ぐ
+    _searchController.dispose();
+    _dbSearchController.dispose();
+    _nameController.dispose();
+    _calorieController.dispose();
+    _proteinController.dispose();
+    _fatController.dispose();
+    _carbsController.dispose();
+    _vitaminController.dispose();
+    _mineralController.dispose();
+    super.dispose();
+  }
+
   Future<void> _loadMyMenuList() async {
     List<MyMenu> list = await MealStorageService.getMyMenuList();
     setState(() {
