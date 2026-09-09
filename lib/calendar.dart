@@ -12,6 +12,27 @@ class _CalendarScreenState extends State<CalendarScreen> {
   int _currentYear = 2026;
   int _currentMonth = 8;
 
+  // =====================================================================
+  // 【バックエンド担当者様へのデータ連携仕様】
+  // 日付ごとの達成状況を以下の形式（Map<String, String> または Enum）で
+  // バックエンドから受け取り、この変数（または状態管理）に格納してください。
+  //
+  // キーの形式: "yyyy-M-d" (例: "2026-8-17" または "2026-08-17")
+  // 値（ステータス）の種類:
+  //   - 'success' (または 1) -> 緑の丸（達成）
+  //   - 'warning' (または 2) -> 黄色の丸（やや不足）
+  //   - 'danger'  (または 3) -> 赤の丸（不足）
+  //   - null または 未登録     -> 丸を表示しない
+  // =====================================================================
+  final Map<String, String> _backendDailyStatusMap = {
+    "2026-8-1": 'success',
+    "2026-8-2": 'warning',
+    "2026-8-3": 'danger',
+    "2026-8-17": 'success', // サンプル: 17日は達成（緑）
+    "2026-8-18": 'warning', // サンプル: 18日はやや不足（黄）
+    "2026-8-19": 'danger',  // サンプル: 19日は不足（赤）
+  };
+
   // 月を前後に移動する処理（2026年8月 〜 2090年12月）
   void _changeMonth(int offset) {
     setState(() {
@@ -31,7 +52,23 @@ class _CalendarScreenState extends State<CalendarScreen> {
 
       _currentYear = newYear;
       _currentMonth = newMonth;
+      
+      // TODO: 月が切り替わったタイミングで、バックエンドに新月のデータを要求するAPIを叩く想定
     });
+  }
+
+  // ステータス文字列から対応する色を返すヘルパー関数
+  Color? _getStatusColor(String? status) {
+    switch (status) {
+      case 'success':
+        return const Color(0xFF66BB6A); // 緑（達成）
+      case 'warning':
+        return const Color(0xFFFFCA28); // 黄（やや不足）
+      case 'danger':
+        return const Color(0xFFEF5350); // 赤（不足）
+      default:
+        return null; // ステータスがない場合は色を返さない
+    }
   }
 
   @override
@@ -140,7 +177,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
     );
   }
 
-  // 枠線付きのカレンダーグリッドを生成（高さを広げて余白を確保）
+  // 枠線付きのカレンダーグリッドを生成
   Widget _buildCalendarGrid(int year, int month) {
     DateTime firstDayOfMonth = DateTime(year, month, 1);
     int weekdayOfFirstDay = firstDayOfMonth.weekday; // 月=1, 日=7
@@ -159,11 +196,17 @@ class _CalendarScreenState extends State<CalendarScreen> {
 
             bool isEffectiveDay = index >= leadingSpaces && day <= daysInMonth;
 
+            // 各有効な日付に対応するステータスを取得するためのキーを作成
+            // 例: "2026-8-17"
+            String dateKey = "$year-$month-$day";
+            String? status = isEffectiveDay ? _backendDailyStatusMap[dateKey] : null;
+            Color? dotColor = _getStatusColor(status);
+
             return Expanded(
               child: Container(
-                height: 60, // ★マスの高さを 44 から 60 に広げて、数字の下にマークが入る余白を作成
-                padding: const EdgeInsets.only(top: 6), // 上からの余白
-                alignment: Alignment.topCenter, // 数字を上に配置し、下にスペースを作る
+                height: 60, 
+                padding: const EdgeInsets.only(top: 6),
+                alignment: Alignment.topCenter,
                 decoration: BoxDecoration(
                   border: Border(
                     right: col < 6
@@ -186,8 +229,21 @@ class _CalendarScreenState extends State<CalendarScreen> {
                               fontWeight: FontWeight.w500,
                             ),
                           ),
-                          // const SizedBox(height: 4), 
-                          // ↑ ここに後ほどマーク（赤丸や緑丸）のウィジェットを追加できます！
+                          const SizedBox(height: 4), 
+                          // 日付ごとのステータスドット（色が存在する場合のみ表示）
+                          SizedBox(
+                            height: 6,
+                            child: dotColor != null
+                                ? Container(
+                                    width: 6,
+                                    height: 6,
+                                    decoration: BoxDecoration(
+                                      shape: BoxShape.circle,
+                                      color: dotColor,
+                                    ),
+                                  )
+                                : null,
+                          ),
                         ],
                       )
                     : const SizedBox.shrink(),

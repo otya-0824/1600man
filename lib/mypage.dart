@@ -1,4 +1,9 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
+import 'profile.dart'; // プロフィールページをインポート
+import 'home.dart';
+import 'meal.dart';
+import 'gurahu.dart';
+import 'calendar.dart';
 
 class MypageScreen extends StatefulWidget {
   const MypageScreen({super.key});
@@ -9,7 +14,7 @@ class MypageScreen extends StatefulWidget {
 
 class _MypageScreenState extends State<MypageScreen> {
   // アイコンを変更できるように状態（State）として保持
-  bool _hasCustomImage = false; 
+  bool _hasCustomImage = false;
 
   // アイコンがタップされたときの処理
   void _changeProfileImage() {
@@ -17,7 +22,7 @@ class _MypageScreenState extends State<MypageScreen> {
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('プロフィール画像'),
-        content: const Text('プロフィール画像を変更しますか？'),
+        content: const Text('プロフィール画像を修正しますか？'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
@@ -30,7 +35,7 @@ class _MypageScreenState extends State<MypageScreen> {
               });
               Navigator.pop(context);
               ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('プロフィール画像を変更しました！')),
+                const SnackBar(content: Text('プロフィール画像を修正しました')),
               );
             },
             child: const Text('変更する'),
@@ -104,16 +109,26 @@ class _MypageScreenState extends State<MypageScreen> {
                   ),
                 ),
                 const SizedBox(height: 12),
-                // プロフィール編集ボタン
+                
+                // プロフィール編集ボタン（ProfilePageへ遷移）
                 OutlinedButton(
-                  onPressed: () {},
+                  onPressed: () {
+                    Navigator.pushAndRemoveUntil(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const ProfilePage(),
+                      ),
+                      (route) => false,
+                    );
+                  },
                   style: OutlinedButton.styleFrom(
                     backgroundColor: Colors.white,
                     side: BorderSide.none,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(20.0),
                     ),
-                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 24, vertical: 8),
                   ),
                   child: const Text(
                     'プロフィール編集',
@@ -133,13 +148,56 @@ class _MypageScreenState extends State<MypageScreen> {
             child: ListView(
               children: const [
                 _MenuItem(title: '目標設定'),
-                _MenuItem(title: '体重の記録'),
                 _MenuItem(title: 'よくある質問'),
                 _MenuItem(title: '設定'),
-                _MenuItem(title: 'ログアウト', isLogout: true),
               ],
             ),
           ),
+        ],
+      ),
+
+      // ボトムナビゲーションバー
+      bottomNavigationBar: BottomNavigationBar(
+        currentIndex: 4, // マイページをアクティブ表示
+        type: BottomNavigationBarType.fixed,
+        selectedItemColor: primaryGreen,
+        unselectedItemColor: Colors.grey,
+        onTap: (index) {
+          if (index == 4) return;
+          switch (index) {
+            case 0:
+              Navigator.pushReplacement(
+                context,
+                MaterialPageRoute(builder: (_) => const HomePage()),
+              );
+              break;
+            case 1:
+              Navigator.pushReplacement(
+                context,
+                MaterialPageRoute(builder: (_) => const MealPage()),
+              );
+              break;
+            case 2:
+              Navigator.pushReplacement(
+                context,
+                MaterialPageRoute(builder: (_) => const GraphScreen()),
+              );
+              break;
+            case 3:
+              Navigator.pushReplacement(
+                context,
+                MaterialPageRoute(builder: (_) => const CalendarScreen()),
+              );
+              break;
+          }
+        },
+        items: const [
+          BottomNavigationBarItem(icon: Icon(Icons.home), label: 'ホーム'),
+          BottomNavigationBarItem(icon: Icon(Icons.restaurant), label: '記録'),
+          BottomNavigationBarItem(icon: Icon(Icons.bar_chart), label: 'グラフ'),
+          BottomNavigationBarItem(
+              icon: Icon(Icons.calendar_month), label: 'カレンダー'),
+          BottomNavigationBarItem(icon: Icon(Icons.person), label: 'マイページ'),
         ],
       ),
     );
@@ -149,9 +207,8 @@ class _MypageScreenState extends State<MypageScreen> {
 // メニューの各項目を作る部品
 class _MenuItem extends StatelessWidget {
   final String title;
-  final bool isLogout;
 
-  const _MenuItem({required this.title, this.isLogout = false});
+  const _MenuItem({required this.title});
 
   @override
   Widget build(BuildContext context) {
@@ -160,10 +217,10 @@ class _MenuItem extends StatelessWidget {
         ListTile(
           title: Text(
             title,
-            style: TextStyle(
+            style: const TextStyle(
               fontSize: 16.0,
               fontWeight: FontWeight.w500,
-              color: isLogout ? Colors.red : Colors.black87,
+              color: Colors.black87,
             ),
           ),
           trailing: const Icon(
