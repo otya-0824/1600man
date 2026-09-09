@@ -1,5 +1,7 @@
 ﻿import 'package:flutter/material.dart';
 import 'meal_detail.dart';
+import 'meal_model.dart';
+import 'meal_storage_service.dart';
 import 'home.dart';
 import 'gurahu.dart';
 import 'calendar.dart';
@@ -13,142 +15,73 @@ class MealPage extends StatefulWidget {
 }
 
 class _MealPageState extends State<MealPage> {
-  DateTime selectedDate = DateTime.now();
-
-  // 仮データ（将来的にFirebaseから取得）
-  final Map<String, List<Map<String, String>>> mealData = {
-    "2026-08-26": [
-      {"title": "朝食", "calorie": "400 kcal"},
-      {"title": "昼食", "calorie": "750 kcal"},
-      {"title": "夕食", "calorie": "600 kcal"},
-      {"title": "その他", "calorie": "150 kcal"},
-    ]
+  // 朝食・昼食・夕食・間食の各保存データを保持するマップ
+  Map<String, DailyMeal?> mealDataMap = {
+    "朝食": null,
+    "昼食": null,
+    "夕食": null,
+    "間食": null,
   };
 
-  // デフォルトの入力用初期枠（今日用）
-  final List<Map<String, String>> defaultMealSlots = [
-    {"title": "朝食", "calorie": "--- kcal"},
-    {"title": "昼食", "calorie": "--- kcal"},
-    {"title": "夕食", "calorie": "--- kcal"},
-    {"title": "その他", "calorie": "--- kcal"},
-  ];
-
-  String get dateKey {
-    return "${selectedDate.year}"
-        "-${selectedDate.month.toString().padLeft(2, '0')}"
-        "-${selectedDate.day.toString().padLeft(2, '0')}";
+  @override
+  void initState() {
+    super.initState();
+    _loadAllMeals();
   }
 
-  // 選択中の日付が「今日」かどうか判定
-  bool get isToday {
-    final now = DateTime.now();
-    return selectedDate.year == now.year &&
-        selectedDate.month == now.month &&
-        selectedDate.day == now.day;
-  }
+  // 当日の各食事データを独立して全取得
+  Future<void> _loadAllMeals() async {
+    DateTime now = DateTime.now();
+    String dateStr = "${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}";
 
-  String get formattedDate {
-    const weekdays = ['月', '火', '水', '木', '金', '土', '日'];
-    return "${selectedDate.year}年"
-        "${selectedDate.month}月"
-        "${selectedDate.day}日"
-        "（${weekdays[selectedDate.weekday - 1]}）";
-  }
+    Map<String, DailyMeal?> tempMap = {};
+    for (String type in ["朝食", "昼食", "夕食", "間食"]) {
+      String storageKey = "${dateStr}_$type";
+      DailyMeal? meal = await MealStorageService.getDailyMeal(storageKey);
+      tempMap[type] = meal;
+    }
 
-  void previousDay() {
     setState(() {
-      selectedDate = selectedDate.subtract(const Duration(days: 1));
+      mealDataMap = tempMap;
     });
   }
 
-  void nextDay() {
-    setState(() {
-      selectedDate = selectedDate.add(const Duration(days: 1));
-    });
+  // 食事記録画面への遷移（mealTypeを指定）
+  Future<void> _navigateToDetail(String mealType) async {
+    final result = await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => MealDetailPage(mealType: mealType),
+      ),
+    );
+
+    if (result == true) {
+      _loadAllMeals(); // 保存後に戻ってきたら再描画
+    }
   }
 
   @override
   Widget build(BuildContext context) {
-    // データ取得ロジック
-    // 1. 今日の場合: 保存データがあればそれを使い、無ければデフォルトの入力枠を表示
-    // 2. 今日以外の場合: 保存データがあれば表示し、無ければ null（データなし表示）
-    List<Map<String, String>>? meals;
-    if (isToday) {
-      meals = mealData[dateKey] ?? defaultMealSlots;
-    } else {
-      meals = mealData[dateKey];
-    }
-
     const Color primaryGreen = Color(0xFF66BB6A);
 
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
+        title: const Text("食事一覧", style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold)),
         backgroundColor: Colors.white,
         elevation: 0,
         centerTitle: true,
-        title: const Text(
-          "食事の記録",
-          style: TextStyle(
-            color: Colors.black,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
       ),
-      body: Column(
+      body: ListView(
+        padding: const EdgeInsets.all(16.0),
         children: [
-          // 日付切り替えヘッダー
-          Container(
-            padding: const EdgeInsets.symmetric(
-              horizontal: 20,
-              vertical: 16,
-            ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                IconButton(
-                  icon: const Icon(Icons.chevron_left),
-                  onPressed: previousDay,
-                ),
-                Text(
-                  formattedDate,
-                  style: const TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 16,
-                  ),
-                ),
-                IconButton(
-                  icon: const Icon(Icons.chevron_right),
-                  onPressed: nextDay,
-                ),
-              ],
-            ),
-          ),
-
-          // 食事リスト表示エリア
-          Expanded(
-            child: meals == null
-                ? const Center(
-                    child: Text(
-                      "データがありません",
-                      style: TextStyle(
-                        color: Colors.grey,
-                        fontSize: 18,
-                      ),
-                    ),
-                  )
-                : ListView.builder(
-                    itemCount: meals.length,
-                    itemBuilder: (context, index) {
-                      return mealCard(
-                        context: context,
-                        title: meals![index]["title"]!,
-                        calorie: meals[index]["calorie"]!,
-                        canEdit: isToday, // 今日だけ編集可能にする
-                      );
-                    },
-                  ),
-          ),
+          _buildMealCard("朝食", Icons.wb_sunny_outlined, primaryGreen),
+          const SizedBox(height: 12),
+          _buildMealCard("昼食", Icons.wb_sunny, primaryGreen),
+          const SizedBox(height: 12),
+          _buildMealCard("夕食", Icons.nights_stay, primaryGreen),
+          const SizedBox(height: 12),
+          _buildMealCard("間食", Icons.cookie, primaryGreen),
         ],
       ),
       bottomNavigationBar: BottomNavigationBar(
@@ -158,31 +91,18 @@ class _MealPageState extends State<MealPage> {
         unselectedItemColor: Colors.grey,
         onTap: (index) {
           if (index == 1) return;
-
           switch (index) {
             case 0:
-              Navigator.pushReplacement(
-                context,
-                MaterialPageRoute(builder: (_) => const HomePage()),
-              );
+              Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const HomePage()));
               break;
             case 2:
-              Navigator.pushReplacement(
-                context,
-                MaterialPageRoute(builder: (_) => const GraphScreen()),
-              );
+              Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const GraphScreen()));
               break;
             case 3:
-              Navigator.pushReplacement(
-                context,
-                MaterialPageRoute(builder: (_) => const CalendarScreen()),
-              );
+              Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const CalendarScreen()));
               break;
             case 4:
-              Navigator.pushReplacement(
-                context,
-                MaterialPageRoute(builder: (_) => const MypageScreen()),
-              );
+              Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const MypageScreen()));
               break;
           }
         },
@@ -190,88 +110,66 @@ class _MealPageState extends State<MealPage> {
           BottomNavigationBarItem(icon: Icon(Icons.home), label: 'ホーム'),
           BottomNavigationBarItem(icon: Icon(Icons.restaurant), label: '記録'),
           BottomNavigationBarItem(icon: Icon(Icons.bar_chart), label: 'グラフ'),
-          BottomNavigationBarItem(
-              icon: Icon(Icons.calendar_month), label: 'カレンダー'),
+          BottomNavigationBarItem(icon: Icon(Icons.calendar_month), label: 'カレンダー'),
           BottomNavigationBarItem(icon: Icon(Icons.person), label: 'マイページ'),
         ],
       ),
     );
   }
 
-  Widget mealCard({
-    required BuildContext context,
-    required String title,
-    required String calorie,
-    required bool canEdit,
-  }) {
-    return Container(
-      margin: const EdgeInsets.symmetric(
-        horizontal: 16,
-        vertical: 8,
-      ),
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 5,
-          ),
-        ],
-      ),
-      child: Row(
-        children: [
-          Container(
-            width: 90,
-            height: 90,
-            decoration: BoxDecoration(
-              color: Colors.grey.shade200,
-              borderRadius: BorderRadius.circular(10),
-            ),
-            child: const Icon(
-              Icons.restaurant,
-              size: 40,
-              color: Colors.grey,
-            ),
-          ),
-          const SizedBox(width: 16),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+  // 各食事カードのコンポーネント
+  Widget _buildMealCard(String mealType, IconData icon, Color primaryColor) {
+    DailyMeal? meal = mealDataMap[mealType];
+    List<FoodItem> foods = meal?.foods ?? [];
+    int totalCalories = foods.fold(0, (sum, item) => sum + item.calorie);
+
+    return Card(
+      elevation: 2,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
               children: [
+                Icon(icon, color: primaryColor),
+                const SizedBox(width: 8),
                 Text(
-                  title,
-                  style: const TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 18,
-                  ),
+                  mealType,
+                  style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                 ),
-                const SizedBox(height: 8),
-                Text(calorie),
+                const Spacer(),
+                Text(
+                  "$totalCalories kcal",
+                  style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.black87),
+                ),
+                const SizedBox(width: 8),
+                IconButton(
+                  icon: Icon(Icons.add_circle, color: primaryColor, size: 28),
+                  onPressed: () => _navigateToDetail(mealType),
+                ),
               ],
             ),
-          ),
-          // 今日（編集可能）の場合のみ ＋ ボタンを表示
-          if (canEdit)
-            CircleAvatar(
-              backgroundColor: Colors.grey.shade200,
-              child: IconButton(
-                icon: const Icon(
-                  Icons.add,
-                  color: Colors.black,
-                ),
-                onPressed: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) => const MealDetailPage(),
+            if (foods.isNotEmpty) ...[
+              const Divider(),
+              Column(
+                children: foods.map((food) {
+                  return Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 2.0),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(food.name, style: const TextStyle(fontSize: 14)),
+                        Text("${food.calorie} kcal", style: const TextStyle(fontSize: 14, color: Colors.grey)),
+                      ],
                     ),
                   );
-                },
+                }).toList(),
               ),
-            ),
-        ],
+            ]
+          ],
+        ),
       ),
     );
   }
