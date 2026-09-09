@@ -2,6 +2,10 @@
 import 'meal_model.dart';
 import 'meal_storage_service.dart';
 import 'my_menu_create.dart';
+import 'models/food_item.dart' as db; // panpanの食品DBモデル(FoodItem名が衝突するため接頭辞付き)
+import 'models/meal.dart';
+import 'services/nutrition_facade.dart';
+import 'services/record_service.dart';
 
 class MealDetailPage extends StatefulWidget {
   final String mealType; // "朝食", "昼食", "夕食", "間食" などを受け取る
@@ -31,6 +35,12 @@ class _MealDetailPageState extends State<MealDetailPage> {
   final TextEditingController _mineralController = TextEditingController();
 
   List<MyMenu> myMenuList = [];
+
+  // 栄養計算エンジン(panpan)との橋渡し役。食品DB検索・栄養計算に使う。
+  final NutritionFacade _facade = NutritionFacade();
+  // 「栄養DB」タブの検索結果
+  List<db.FoodItem> _dbResults = [];
+  final TextEditingController _dbSearchController = TextEditingController();
 
   Map<int, List<Map<String, dynamic>>> foodCandidates = {
     0: [
@@ -179,6 +189,71 @@ class _MealDetailPageState extends State<MealDetailPage> {
     FocusScope.of(context).unfocus();
   }
 
+  // 「栄養DB」タブ：食品DB(約2500件)をキーワード検索する
+  Future<void> _searchDb(String query) async {
+    if (query.trim().isEmpty) return;
+    final results = await _facade.searchFoods(query.trim());
+    if (!mounted) return;
+    setState(() {
+      _dbResults = results;
+    });
+  }
+
+  // DB検索結果を選び、量(g)を入力して栄養を自動計算し、リストに追加する
+  Future<void> _addFromDb(db.FoodItem food) async {
+    final gramsController = TextEditingController(text: "100");
+    final grams = await showDialog<double>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(food.name),
+        content: TextField(
+          controller: gramsController,
+          keyboardType: TextInputType.number,
+          autofocus: true,
+          decoration: const InputDecoration(labelText: "量", suffixText: "g"),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text("キャンセル"),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(
+              ctx,
+              double.tryParse(gramsController.text) ?? 0,
+            ),
+            child: const Text("追加"),
+          ),
+        ],
+      ),
+    );
+
+    if (grams == null || grams <= 0) return;
+
+    // panpanの計算エンジンで栄養を計算する
+    final entry =
+        await _facade.calcEntry(foodName: food.name, amountGrams: grams);
+    if (!mounted) return;
+    if (entry == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("栄養データが見つかりませんでした")),
+      );
+      return;
+    }
+
+    _addFood({
+      "name": entry.name,
+      "amount": "${grams.round()}g",
+      "calorie": entry.kcal.round(),
+      "protein": double.parse(entry.protein.toStringAsFixed(1)),
+      "fat": double.parse(entry.fat.toStringAsFixed(1)),
+      "carbs": double.parse(entry.carbohydrate.toStringAsFixed(1)),
+      "vitamin": 0.0,
+      "mineral": 0.0,
+      "icon": Icons.local_dining,
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     const Color primaryGreen = Colors.green;
@@ -235,6 +310,8 @@ class _MealDetailPageState extends State<MealDetailPage> {
               scrollDirection: Axis.horizontal,
               child: Row(
                 children: [
+                  _buildTabButton("栄養DB", 4),
+                  const SizedBox(width: 6),
                   _buildTabButton("よく食べる", 0),
                   const SizedBox(width: 6),
                   _buildTabButton("履歴", 1),
@@ -248,7 +325,9 @@ class _MealDetailPageState extends State<MealDetailPage> {
           ),
           SizedBox(
             height: 180,
-            child: selectedTabIndex == 2
+            child: selectedTabIndex == 4
+                ? _buildDbSearchTab(primaryGreen)
+                : selectedTabIndex == 2
                 ? _buildMyMenuTab(primaryGreen)
                 : selectedTabIndex == 3
                     ? _buildCustomInputForm(primaryGreen)
@@ -367,6 +446,29 @@ class _MealDetailPageState extends State<MealDetailPage> {
                       );
                       await MealStorageService.saveDailyMeal(dailyMeal);
 
+                      // ホーム画面の集計元であるFirestoreにも反映する。
+                      // 同じ食事区分を置き換える形で保存し、二重計上を防ぐ。
+                      final okabeMeals = selectedFoods
+                          .map((item) => Meal(
+                                name: item["name"] ?? "",
+                                calorie: (item["calorie"] ?? 0).toDouble(),
+                                protein: (item["protein"] ?? 0.0).toDouble(),
+                                fat: (item["fat"] ?? 0.0).toDouble(),
+                                carbo: (item["carbs"] ?? 0.0).toDouble(),
+                                time: now,
+                                mealType: widget.mealType,
+                              ))
+                          .toList();
+                      try {
+                        await RecordService().replaceMealsForType(
+                          now,
+                          widget.mealType,
+                          okabeMeals,
+                        );
+                      } catch (_) {
+                        // Firestore未接続などでも、ローカル保存は成立させる
+                      }
+
                       if (context.mounted) {
                         Navigator.pop(context, true);
                       }
@@ -388,6 +490,60 @@ class _MealDetailPageState extends State<MealDetailPage> {
           ),
         ],
       ),
+    );
+  }
+
+  // 「栄養DB」タブ：食品DBを検索し、量(g)から栄養を自動計算して追加する
+  Widget _buildDbSearchTab(Color primaryGreen) {
+    return Column(
+      children: [
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+          child: TextField(
+            controller: _dbSearchController,
+            textInputAction: TextInputAction.search,
+            onSubmitted: _searchDb,
+            decoration: InputDecoration(
+              hintText: "食品DBを検索(例: 普通牛乳)",
+              prefixIcon: const Icon(Icons.search),
+              suffixIcon: IconButton(
+                icon: const Icon(Icons.arrow_forward),
+                onPressed: () => _searchDb(_dbSearchController.text),
+              ),
+              isDense: true,
+              border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+            ),
+          ),
+        ),
+        Expanded(
+          child: _dbResults.isEmpty
+              ? const Center(
+                  child: Text(
+                    "食品名で検索してください",
+                    style: TextStyle(color: Colors.grey, fontSize: 12),
+                  ),
+                )
+              : ListView.builder(
+                  itemCount: _dbResults.length,
+                  itemBuilder: (ctx, i) {
+                    final food = _dbResults[i];
+                    return ListTile(
+                      dense: true,
+                      title: Text(
+                        food.name,
+                        style: const TextStyle(
+                            fontWeight: FontWeight.bold, fontSize: 13),
+                      ),
+                      subtitle: Text("100gあたり ${food.kcal.round()} kcal"),
+                      trailing: IconButton(
+                        icon: Icon(Icons.add_circle, color: primaryGreen),
+                        onPressed: () => _addFromDb(food),
+                      ),
+                    );
+                  },
+                ),
+        ),
+      ],
     );
   }
 

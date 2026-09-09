@@ -48,6 +48,30 @@ class RecordService {
     await meals.doc(mealId).delete();
   }
 
+  // 指定日・指定の食事区分の記録を「まるごと置き換える」。
+  // 記録画面は食事区分ごとに保存し直せるため、単純に add すると
+  // 保存のたびに二重計上されてしまう。そこで同じ区分の既存記録を
+  // 一度削除してから、新しいリストを追加することで冪等にしている。
+  Future<void> replaceMealsForType(
+    DateTime date,
+    String mealType,
+    List<Meal> meals,
+  ) async {
+    final ref = await _mealsRef(date);
+
+    // 既存の同じ食事区分を削除
+    final existing =
+        await ref.where("mealType", isEqualTo: mealType).get();
+    for (final doc in existing.docs) {
+      await doc.reference.delete();
+    }
+
+    // 新しい記録を追加
+    for (final meal in meals) {
+      await ref.add(meal.toMap());
+    }
+  }
+
   // 指定日の食事一覧を一度だけ取得する
   Future<List<Meal>> fetchMeals(DateTime date) async {
     final meals = await _mealsRef(date);

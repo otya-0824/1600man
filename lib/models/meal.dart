@@ -9,6 +9,7 @@ class Meal {
   final double fat; // F (g)
   final double carbo; // C (g)
   final DateTime time; // 食べた時刻
+  final String? mealType; // 食事区分（"朝食"/"昼食"/"夕食"/"間食"）。記録画面から付与する
 
   const Meal({
     this.id,
@@ -18,6 +19,7 @@ class Meal {
     required this.fat,
     required this.carbo,
     required this.time,
+    this.mealType,
   });
 
   // Firestoreに書き込む用（オブジェクト → Map）
@@ -29,6 +31,7 @@ class Meal {
       "fat": fat,
       "carbo": carbo,
       "time": time.toIso8601String(),
+      "mealType": mealType,
     };
   }
 
@@ -42,6 +45,7 @@ class Meal {
       fat: (map["fat"] as num?)?.toDouble() ?? 0,
       carbo: (map["carbo"] as num?)?.toDouble() ?? 0,
       time: DateTime.tryParse(map["time"] as String? ?? "") ?? DateTime.now(),
+      mealType: map["mealType"] as String?,
     );
   }
 }
