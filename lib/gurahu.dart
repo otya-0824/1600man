@@ -1,4 +1,8 @@
 import 'package:flutter/material.dart';
+import 'home.dart';
+import 'meal.dart';
+import 'calendar.dart';
+import 'mypage.dart';
 
 class GraphScreen extends StatefulWidget {
   const GraphScreen({super.key});
@@ -50,9 +54,15 @@ class _GraphScreenState extends State<GraphScreen> {
     });
   }
 
+  // 年をまたぐかどうかで表示を自動切り替えるように修正
   String _formatDateRange() {
     DateTime sunday = _currentMonday.add(const Duration(days: 6));
-    return '${_currentMonday.month}/${_currentMonday.day} (月) 〜 ${sunday.month}/${sunday.day} (日)';
+    
+    if (_currentMonday.year != sunday.year) {
+      return '${_currentMonday.year}年${_currentMonday.month}/${_currentMonday.day}（月）〜 ${sunday.year}年${sunday.month}/${sunday.day}（日）';
+    } else {
+      return '${_currentMonday.year}年 ${_currentMonday.month}/${_currentMonday.day}（月）〜 ${sunday.month}/${sunday.day}（日）';
+    }
   }
 
   String _getWeekDay(DateTime date) {
@@ -84,15 +94,14 @@ class _GraphScreenState extends State<GraphScreen> {
     double maxGraphValue = baseMax + 500.0;
     double topScaleValue = maxGraphValue;
 
+    const Color primaryGreen = Color(0xFF66BB6A);
+
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
         backgroundColor: Colors.white,
         elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios, color: Colors.black54, size: 18),
-          onPressed: () {},
-        ),
+        automaticallyImplyLeading: false,
         centerTitle: true,
         title: const Text(
           '栄養素グラフ',
@@ -120,7 +129,7 @@ class _GraphScreenState extends State<GraphScreen> {
                 ],
               ),
               const SizedBox(height: 8),
-              // 下段タブ：タンパク質 / 脂質 / 炭水化物（五大栄養素のうち3つ）
+              // 下段タブ：タンパク質 / 脂質 / 炭水化物
               Row(
                 children: [
                   _buildTabButton('タンパク質', 0, isUpper: false),
@@ -280,7 +289,7 @@ class _GraphScreenState extends State<GraphScreen> {
                                               width: 16,
                                               height: barHeight > 0 ? barHeight : 0,
                                               decoration: BoxDecoration(
-                                                color: const Color(0xFF66BB6A),
+                                                color: primaryGreen,
                                                 borderRadius: BorderRadius.circular(4),
                                               ),
                                             );
@@ -330,6 +339,51 @@ class _GraphScreenState extends State<GraphScreen> {
           ),
         ),
       ),
+      bottomNavigationBar: BottomNavigationBar(
+        currentIndex: 2,
+        type: BottomNavigationBarType.fixed,
+        selectedItemColor: primaryGreen,
+        unselectedItemColor: Colors.grey,
+        onTap: (index) {
+          if (index == 2) return;
+          switch (index) {
+            case 0:
+              Navigator.pushReplacement(
+                context,
+                MaterialPageRoute(builder: (_) => const HomePage()),
+              );
+              break;
+            case 1:
+              Navigator.pushReplacement(
+                context,
+                MaterialPageRoute(builder: (_) => const MealPage()),
+              );
+              break;
+            case 2:
+              break;
+            case 3:
+              Navigator.pushReplacement(
+                context,
+                MaterialPageRoute(builder: (_) => const CalendarScreen()),
+              );
+              break;
+            case 4:
+              Navigator.pushReplacement(
+                context,
+                MaterialPageRoute(builder: (_) => const MypageScreen()),
+              );
+              break;
+          }
+        },
+        items: const [
+          BottomNavigationBarItem(icon: Icon(Icons.home), label: 'ホーム'),
+          BottomNavigationBarItem(icon: Icon(Icons.restaurant), label: '記録'),
+          BottomNavigationBarItem(icon: Icon(Icons.bar_chart), label: 'グラフ'),
+          BottomNavigationBarItem(
+              icon: Icon(Icons.calendar_month), label: 'カレンダー'),
+          BottomNavigationBarItem(icon: Icon(Icons.person), label: 'マイページ'),
+        ],
+      ),
     );
   }
 
@@ -345,10 +399,10 @@ class _GraphScreenState extends State<GraphScreen> {
           setState(() {
             if (isUpper) {
               _selectedUpperIndex = index;
-              _selectedLowerIndex = -1; // 上段が押されたら下段の選択を解除
+              _selectedLowerIndex = -1;
             } else {
               _selectedLowerIndex = index;
-              _selectedUpperIndex = -1; // 下段が押されたら上段の選択を解除
+              _selectedUpperIndex = -1;
             }
           });
         },

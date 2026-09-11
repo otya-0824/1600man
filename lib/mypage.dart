@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'profile.dart'; // プロフィールページをインポート
 import 'home.dart';
 import 'meal.dart';

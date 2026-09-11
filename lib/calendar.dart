@@ -1,4 +1,8 @@
 import 'package:flutter/material.dart';
+import 'home.dart';
+import 'meal.dart';
+import 'gurahu.dart';
+import 'mypage.dart';
 
 class CalendarScreen extends StatefulWidget {
   const CalendarScreen({super.key});
@@ -73,6 +77,8 @@ class _CalendarScreenState extends State<CalendarScreen> {
 
   @override
   Widget build(BuildContext context) {
+    const Color primaryGreen = Color(0xFF66BB6A);
+
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
@@ -174,6 +180,51 @@ class _CalendarScreenState extends State<CalendarScreen> {
           ),
         ],
       ),
+
+      // ボトムナビゲーションバーを追加
+      bottomNavigationBar: BottomNavigationBar(
+        currentIndex: 3, // カレンダーをアクティブ表示（0:ホーム, 1:記録, 2:グラフ, 3:カレンダー, 4:マイページ）
+        type: BottomNavigationBarType.fixed,
+        selectedItemColor: primaryGreen,
+        unselectedItemColor: Colors.grey,
+        onTap: (index) {
+          if (index == 3) return; // すでにカレンダーにいる場合は何もしない
+          switch (index) {
+            case 0:
+              Navigator.pushReplacement(
+                context,
+                MaterialPageRoute(builder: (_) => const HomePage()),
+              );
+              break;
+            case 1:
+              Navigator.pushReplacement(
+                context,
+                MaterialPageRoute(builder: (_) => const MealPage()),
+              );
+              break;
+            case 2:
+              Navigator.pushReplacement(
+                context,
+                MaterialPageRoute(builder: (_) => const GraphScreen()),
+              );
+              break;
+            case 4:
+              Navigator.pushReplacement(
+                context,
+                MaterialPageRoute(builder: (_) => const MypageScreen()),
+              );
+              break;
+          }
+        },
+        items: const [
+          BottomNavigationBarItem(icon: Icon(Icons.home), label: 'ホーム'),
+          BottomNavigationBarItem(icon: Icon(Icons.restaurant), label: '記録'),
+          BottomNavigationBarItem(icon: Icon(Icons.bar_chart), label: 'グラフ'),
+          BottomNavigationBarItem(
+              icon: Icon(Icons.calendar_month), label: 'カレンダー'),
+          BottomNavigationBarItem(icon: Icon(Icons.person), label: 'マイページ'),
+        ],
+      ),
     );
   }
 
@@ -187,6 +238,9 @@ class _CalendarScreenState extends State<CalendarScreen> {
     int totalCells = leadingSpaces + daysInMonth;
     int totalRows = (totalCells / 7).ceil();
 
+    // 今日の日付を取得
+    DateTime now = DateTime.now();
+
     return Column(
       children: List.generate(totalRows, (row) {
         return Row(
@@ -197,10 +251,17 @@ class _CalendarScreenState extends State<CalendarScreen> {
             bool isEffectiveDay = index >= leadingSpaces && day <= daysInMonth;
 
             // 各有効な日付に対応するステータスを取得するためのキーを作成
-            // 例: "2026-8-17"
             String dateKey = "$year-$month-$day";
             String? status = isEffectiveDay ? _backendDailyStatusMap[dateKey] : null;
             Color? dotColor = _getStatusColor(status);
+
+            // 今日かどうかを判定
+            bool isToday = isEffectiveDay &&
+                now.year == year &&
+                now.month == month &&
+                now.day == day;
+
+            const Color primaryGreen = Color(0xFF66BB6A);
 
             return Expanded(
               child: Container(
@@ -221,12 +282,21 @@ class _CalendarScreenState extends State<CalendarScreen> {
                     ? Column(
                         mainAxisAlignment: MainAxisAlignment.start,
                         children: [
-                          Text(
-                            '$day',
-                            style: const TextStyle(
-                              fontSize: 14,
-                              color: Colors.black87,
-                              fontWeight: FontWeight.w500,
+                          Container(
+                            width: 24,
+                            height: 24,
+                            alignment: Alignment.center,
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              color: isToday ? primaryGreen : Colors.transparent,
+                            ),
+                            child: Text(
+                              '$day',
+                              style: TextStyle(
+                                fontSize: 14,
+                                color: isToday ? Colors.white : Colors.black87,
+                                fontWeight: isToday ? FontWeight.bold : FontWeight.w500,
+                              ),
                             ),
                           ),
                           const SizedBox(height: 4), 
