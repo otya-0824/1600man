@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'home.dart';
 import 'meal.dart';
 import 'calendar.dart';
@@ -25,7 +25,11 @@ class _GraphScreenState extends State<GraphScreen> {
   @override
   void initState() {
     super.initState();
-    _currentMonday = _getMondayOfWeek(DateTime(2026, 8, 20));
+    DateTime now = DateTime.now();
+    DateTime target = now.isBefore(_minDate) 
+        ? _minDate 
+        : (now.isAfter(_maxDate) ? _maxDate : now);
+    _currentMonday = _getMondayOfWeek(target);
   }
 
   DateTime _getMondayOfWeek(DateTime date) {
@@ -54,7 +58,6 @@ class _GraphScreenState extends State<GraphScreen> {
     });
   }
 
-  // 年をまたぐかどうかで表示を自動切り替えるように修正
   String _formatDateRange() {
     DateTime sunday = _currentMonday.add(const Duration(days: 6));
     
@@ -251,53 +254,56 @@ class _GraphScreenState extends State<GraphScreen> {
                               const SizedBox(width: 8),
                               // 右側のグラフ本体
                               Expanded(
-                                child: Stack(
-                                  children: [
-                                    // 背景の目盛り線（6本）
-                                    ...List.generate(6, (index) {
-                                      double ratio = index / 5;
-                                      return Positioned(
-                                        top: chartHeight * ratio,
+                                child: Padding(
+                                  padding: const EdgeInsets.symmetric(horizontal: 0),
+                                  child: Stack(
+                                    children: [
+                                      // 背景の目盛り線（6本）
+                                      ...List.generate(6, (index) {
+                                        double ratio = index / 5;
+                                        return Positioned(
+                                          top: chartHeight * ratio,
+                                          left: 0,
+                                          right: 0,
+                                          child: Divider(color: Colors.grey.shade200, height: 1),
+                                        );
+                                      }),
+                                      
+                                      // 目標ライン（黄色い横棒）
+                                      Positioned(
+                                        top: chartHeight * (1 - (targetCalories / topScaleValue)),
                                         left: 0,
                                         right: 0,
-                                        child: Divider(color: Colors.grey.shade200, height: 1),
-                                      );
-                                    }),
-                                    
-                                    // 目標ライン（黄色い横棒）
-                                    Positioned(
-                                      top: chartHeight * (1 - (targetCalories / topScaleValue)),
-                                      left: 0,
-                                      right: 0,
-                                      child: Container(
-                                        height: 2,
-                                        color: Colors.amber,
-                                      ),
-                                    ),
-
-                                    // 棒グラフ部分
-                                    Positioned.fill(
-                                      child: Align(
-                                        alignment: Alignment.bottomCenter,
-                                        child: Row(
-                                          mainAxisAlignment: MainAxisAlignment.spaceAround,
-                                          crossAxisAlignment: CrossAxisAlignment.end,
-                                          children: calorieData.map((calories) {
-                                            double ratio = calories / topScaleValue;
-                                            double barHeight = chartHeight * ratio;
-                                            return Container(
-                                              width: 16,
-                                              height: barHeight > 0 ? barHeight : 0,
-                                              decoration: BoxDecoration(
-                                                color: primaryGreen,
-                                                borderRadius: BorderRadius.circular(4),
-                                              ),
-                                            );
-                                          }).toList(),
+                                        child: Container(
+                                          height: 2,
+                                          color: Colors.amber,
                                         ),
                                       ),
-                                    ),
-                                  ],
+
+                                      // 棒グラフ部分
+                                      Positioned.fill(
+                                        child: Align(
+                                          alignment: Alignment.bottomCenter,
+                                          child: Row(
+                                            mainAxisAlignment: MainAxisAlignment.spaceAround,
+                                            crossAxisAlignment: CrossAxisAlignment.end,
+                                            children: calorieData.map((calories) {
+                                              double ratio = calories / topScaleValue;
+                                              double barHeight = chartHeight * ratio;
+                                              return Container(
+                                                width: 16,
+                                                height: barHeight > 0 ? barHeight : 0,
+                                                decoration: BoxDecoration(
+                                                  color: primaryGreen,
+                                                  borderRadius: BorderRadius.circular(4),
+                                                ),
+                                              );
+                                            }).toList(),
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
                                 ),
                               ),
                             ],
@@ -306,7 +312,7 @@ class _GraphScreenState extends State<GraphScreen> {
                       ),
                     ),
                     const SizedBox(height: 8),
-                    // 下部エリア：左側に単位 (kcal)、右側に日付・曜日を配置
+                    // 下部エリア
                     Row(
                       children: [
                         const SizedBox(
@@ -322,9 +328,33 @@ class _GraphScreenState extends State<GraphScreen> {
                             mainAxisAlignment: MainAxisAlignment.spaceAround,
                             children: List.generate(7, (index) {
                               DateTime targetDate = _currentMonday.add(Duration(days: index));
-                              return _DayLabel(
-                                day: '${targetDate.day}',
-                                weekDay: _getWeekDay(targetDate),
+                              DateTime now = DateTime.now();
+                              bool isToday = targetDate.year == now.year &&
+                                  targetDate.month == now.month &&
+                                  targetDate.day == now.day;
+
+                              return SizedBox(
+                                width: 16,
+                                child: Column(
+                                  children: [
+                                    Text(
+                                      '${targetDate.day}',
+                                      style: TextStyle(
+                                        fontSize: 11,
+                                        color: isToday ? primaryGreen : Colors.black87,
+                                        fontWeight: isToday ? FontWeight.bold : FontWeight.normal,
+                                      ),
+                                    ),
+                                    Text(
+                                      _getWeekDay(targetDate),
+                                      style: TextStyle(
+                                        fontSize: 10,
+                                        color: isToday ? primaryGreen : Colors.grey,
+                                        fontWeight: isToday ? FontWeight.bold : FontWeight.normal,
+                                      ),
+                                    ),
+                                  ],
+                                ),
                               );
                             }),
                           ),
@@ -350,7 +380,7 @@ class _GraphScreenState extends State<GraphScreen> {
             case 0:
               Navigator.pushReplacement(
                 context,
-                MaterialPageRoute(builder: (_) => HomePage()),
+                MaterialPageRoute(builder: (_) => HomePage()), // constを削除
               );
               break;
             case 1:
@@ -426,23 +456,6 @@ class _GraphScreenState extends State<GraphScreen> {
           ),
         ),
       ),
-    );
-  }
-}
-
-class _DayLabel extends StatelessWidget {
-  final String day;
-  final String weekDay;
-
-  const _DayLabel({required this.day, required this.weekDay});
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      children: [
-        Text(day, style: const TextStyle(fontSize: 11, color: Colors.black87)),
-        Text(weekDay, style: const TextStyle(fontSize: 10, color: Colors.grey)),
-      ],
     );
   }
 }
