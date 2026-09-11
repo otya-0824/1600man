@@ -39,14 +39,12 @@ class _MypageScreenState extends State<MypageScreen> {
 
   // 【編集箇所】Firebaseからプロフィール情報を取得する処理
   Future<void> loadProfile() async {
+    // userId が渡されていなければ固定ドキュメント(current)を読む。
+    // これによりボトムナビ経由（userId なし）でもプロフィールを取得できる。
+    final id = widget.userId ?? UserService.currentUserId;
 
-    // 【編集箇所】ユーザーIDがない場合は取得処理を行わない
-    if (widget.userId == null) {
-      return;
-    }
-
-    // 【編集箇所】UserServiceを使ってFirebaseからプロフィールを取得
-    profileData = await userService.getProfile(widget.userId!);
+    // UserServiceを使ってFirebaseからプロフィールを取得
+    profileData = await userService.getProfile(id);
     if (!mounted) return;
     setState(() {});
   }

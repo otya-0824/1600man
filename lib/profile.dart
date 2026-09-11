@@ -43,6 +43,40 @@ class _ProfilePageState extends State<ProfilePage> {
   void initState() {
     super.initState();
     calculateAge();
+    // Firebase に保存済みのプロフィールを読み込んで入力欄へ反映する
+    loadExistingProfile();
+  }
+
+  // =========================
+  // 既存プロフィールの読み込み（固定ドキュメント）
+  // =========================
+  Future<void> loadExistingProfile() async {
+    final data = await userService.getProfile(UserService.currentUserId);
+    if (data == null || !mounted) return;
+
+    final birthDate = (data['birthDate'] ?? '') as String;
+    final parts = birthDate.split('-');
+
+    setState(() {
+      isMale = (data['gender'] ?? '男性') == '男性';
+      if (parts.length == 3) {
+        selectedYear = parts[0];
+        selectedMonth = parts[1];
+        selectedDay = parts[2];
+      }
+      goal = (data['goal'] ?? goal) as String;
+      heightController.text = _numToText(data['height']);
+      weightController.text = _numToText(data['weight']);
+      goalWeightController.text = _numToText(data['goalWeight']);
+    });
+    calculateAge();
+  }
+
+  // 数値を入力欄用の文字列に整形（整数なら小数点以下を出さない）
+  String _numToText(dynamic value) {
+    if (value == null) return '';
+    final d = (value as num).toDouble();
+    return d == d.roundToDouble() ? d.toInt().toString() : d.toString();
   }
 
   // =========================

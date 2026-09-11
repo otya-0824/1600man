@@ -106,3 +106,19 @@ Web で起動して画面表示・遷移・Firebase 保存まで確認し、`oka
 - 確認：ホーム「今日の栄養サマリー」「記録」、グラフ「栄養素グラフ / 脂質 / 平均 / 目標」など、豆腐が全画面で解消。
 - ブランチ運用：**okabe ブランチのみ**にコミット。main へはまだ push していない（指示による）。
 - 留意：Web バンドルがフォント分（約9.6MB）増える。将来サブセット化（必要字形のみ）で軽量化も可能。
+
+---
+
+## 6. プロフィールが再表示されない不具合を修正（保存/読込）
+
+- 現象：Firebase には保存されているのに、プロフィール編集を開くと**毎回初期値（入力欄が空）**になり、保存値が出てこない。
+- 原因：
+  1. `ProfilePage` に**既存プロフィールを読み込む処理が無かった**（`initState` で年齢計算のみ）。
+  2. マイページ→編集は `const ProfilePage()` で **userId を渡していない**。ボトムナビの `MypageScreen()` も userId が null。
+  3. `UserService.saveProfile` が `users.add()` で**毎回新規ドキュメント**を作成（固定の“自分の”ドキュメントが無い）。
+- 対応（**固定ドキュメント方式**。ログイン機能が無い＝実質シングルユーザーのため）：
+  - `UserService` に `static const currentUserId = 'current'` を追加。`saveProfile` を `users.doc('current').set(...)`（上書き）に変更。
+  - `ProfilePage.initState` で `getProfile('current')` を読み込み、性別/生年月日/身長/体重/目標/目標体重を**入力欄へ反映**（`loadExistingProfile`）。
+  - `MypageScreen.loadProfile` を `widget.userId ?? currentUserId` で読むよう変更（ボトムナビ経由でも取得可）。
+- 確認：保存 → 再度編集画面を開くと値が復元。さらに**完全リロード（セッションまたぎ）後も復元**を確認。
+- 補足：将来ログイン/マルチユーザー化する場合は、固定 `'current'` を認証 uid に置き換える。
