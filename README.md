@@ -177,6 +177,29 @@ final comparisons = NutritionFeedbackService().compare(
 // status(low/good/high)・message(表示用の文言)を持つ。
 ```
 
+### 五大栄養素グラフ用:ビタミン・ミネラルをグループの複合スコアにまとめる
+
+ビタミン(13項目)・ミネラル(7項目)は単位も目標値の大きさもバラバラなため、
+生の数値のまま合計しても意味を持たない。そこで「目標に対する達成率」に
+揃えたうえで平均し、グループ全体を1本のバーとして表示できるようにする。
+
+```dart
+import 'services/nutrient_group_service.dart';
+
+final groupService = NutrientGroupService();
+
+final vitaminScore = groupService.vitaminScore(comparisons);
+final mineralScore = groupService.mineralScore(comparisons);
+
+if (vitaminScore != null) {
+  print('ビタミン平均達成率: ${(vitaminScore.averageRatio * 100).toStringAsFixed(0)}%');
+  print('判定: ${vitaminScore.status}'); // low / good / high
+}
+
+// 両方まとめて取得したい場合
+final allScores = groupService.allGroupScores(comparisons);
+```
+
 ---
 
 ## おまけ:目標体重までの期間
