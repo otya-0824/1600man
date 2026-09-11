@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'home.dart';
 import 'meal.dart';
 import 'calendar.dart';
@@ -252,10 +252,10 @@ class _GraphScreenState extends State<GraphScreen> {
                                 ),
                               ),
                               const SizedBox(width: 8),
-                              // 右側のグラフ本体（日付ラベルと幅を一致させるためパディングを削除しStack内で調整）
+                              // 右側のグラフ本体
                               Expanded(
                                 child: Padding(
-                                  padding: const EdgeInsets.symmetric(horizontal: 0), // 日付ラベルのspaceAroundと位置を正確に同期
+                                  padding: const EdgeInsets.symmetric(horizontal: 0),
                                   child: Stack(
                                     children: [
                                       // 背景の目盛り線（6本）
@@ -312,7 +312,7 @@ class _GraphScreenState extends State<GraphScreen> {
                       ),
                     ),
                     const SizedBox(height: 8),
-                    // 下部エリア：左側に単位 (kcal)、右側に日付・曜日を配置（左側の幅をグラフ側と完全に一致させる）
+                    // 下部エリア
                     Row(
                       children: [
                         const SizedBox(
@@ -334,7 +334,7 @@ class _GraphScreenState extends State<GraphScreen> {
                                   targetDate.day == now.day;
 
                               return SizedBox(
-                                width: 16, // 棒グラフの幅(16)と揃えることで中央位置を完全一致させる
+                                width: 16,
                                 child: Column(
                                   children: [
                                     Text(
@@ -380,7 +380,7 @@ class _GraphScreenState extends State<GraphScreen> {
             case 0:
               Navigator.pushReplacement(
                 context,
-                MaterialPageRoute(builder: (_) => const HomePage()),
+                MaterialPageRoute(builder: (_) => HomePage()), // constを削除
               );
               break;
             case 1:
