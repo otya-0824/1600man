@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:fl_chart/fl_chart.dart';
 
 import 'models/meal.dart';
 import 'models/nutrition_target.dart';
@@ -183,23 +184,20 @@ class HomePage extends StatelessWidget {
 
             const SizedBox(height: 20),
 
-            Container(
-              height: 220,
-              width: double.infinity,
-              decoration: BoxDecoration(
-                color: Colors.green.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(16),
-              ),
-              child: const Center(
-                child: Text(
-                  "レーダーチャート\n(後で実装)",
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    fontSize: 18,
-                    color: Colors.green,
-                  ),
-                ),
-              ),
+            FutureBuilder<NutritionTarget?>(
+              future: _targetFuture,
+              builder: (context, targetSnap) {
+                return FutureBuilder<DailySummary>(
+                  future: _summaryFuture,
+                  builder: (context, sumSnap) {
+                    final summary = sumSnap.data ?? const DailySummary();
+                    return _NutritionRadarChart(
+                      summary: summary,
+                      target: targetSnap.data,
+                    );
+                  },
+                );
+              },
             ),
           ],
         ),
@@ -300,6 +298,69 @@ class HomePage extends StatelessWidget {
               ),
             ),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+// =====================================================================
+// 栄養バランス レーダーチャート（五角形 / fl_chart）
+// 軸: タンパク質 / 脂質 / 炭水化物 / ビタミン / ミネラル（上から時計回り）
+// 実データ(DailySummary)を目標・参照値に対する達成率(%)で表示する。
+// =====================================================================
+class _NutritionRadarChart extends StatelessWidget {
+  final DailySummary summary;
+  final NutritionTarget? target;
+
+  const _NutritionRadarChart({required this.summary, required this.target});
+
+  @override
+  Widget build(BuildContext context) {
+    // ビタミン・ミネラルは専用の目標が無いため参照値で正規化（暫定・調整可）
+    const refVitamin = 100.0;
+    const refMineral = 100.0;
+
+    double pct(double actual, double ref) => ref <= 0 ? 0 : actual / ref * 100;
+
+    final values = <double>[
+      pct(summary.totalProtein, target?.targetProtein ?? 60),
+      pct(summary.totalFat, target?.targetFat ?? 60),
+      pct(summary.totalCarbo, target?.targetCarbohydrate ?? 250),
+      pct(summary.totalVitamin, refVitamin),
+      pct(summary.totalMineral, refMineral),
+    ];
+    const titles = ['タンパク質', '脂質', '炭水化物', 'ビタミン', 'ミネラル'];
+
+    const green = Color(0xFF66BB6A);
+
+    return Container(
+      height: 320,
+      width: double.infinity,
+      padding: const EdgeInsets.fromLTRB(8, 28, 8, 24),
+      color: Colors.white,
+      child: RadarChart(
+        RadarChartData(
+          radarShape: RadarShape.polygon,
+          dataSets: [
+            RadarDataSet(
+              dataEntries: [for (final v in values) RadarEntry(value: v)],
+              fillColor: green.withValues(alpha: 0.25),
+              borderColor: green,
+              borderWidth: 2,
+              entryRadius: 3,
+            ),
+          ],
+          getTitle: (index, angle) => RadarChartTitle(text: titles[index]),
+          titleTextStyle: const TextStyle(fontSize: 12, color: Colors.black87),
+          titlePositionPercentageOffset: 0.12,
+          radarBackgroundColor: Colors.transparent,
+          radarBorderData: const BorderSide(color: Colors.black87, width: 1.2),
+          gridBorderData: const BorderSide(color: Colors.black54, width: 1),
+          tickBorderData: const BorderSide(color: Colors.black54, width: 1),
+          tickCount: 5,
+          ticksTextStyle:
+              const TextStyle(fontSize: 9, color: Colors.black45),
         ),
       ),
     );

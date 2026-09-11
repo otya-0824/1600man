@@ -138,3 +138,18 @@ Web で起動して画面表示・遷移・Firebase 保存まで確認し、`oka
   - 月切替（`_changeMonth`）と `initState` で `_loadStatuses()` を呼び再計算。build のキーを `MealStorageService.dateStr`（yyyy-MM-dd）に統一。
 - 確認：9月の今日（11日）に**赤ドット（不足）**＝229/1200≒19% が表示。8月の旧サンプル固定ドットは消え、実データのみに。
 - 留意：目標の根本解決は「旧 ProfileService ↔ 新プロフィール(users/current) の橋渡し」。実装すればフォールバック 1200 は不要になる。
+
+---
+
+## 8. ホームの栄養バランス「レーダーチャート（五角形）」を実装
+
+- ホームの「レーダーチャート(後で実装)」プレースホルダを、フロントのデザイン（五角形）に合わせて実装。
+- ライブラリ：`fl_chart`（`flutter pub add fl_chart` / v1.2.0）を導入し `RadarChart` を使用。
+- 仕様：
+  - 5軸（上から時計回り）＝ **タンパク質 / 脂質 / 炭水化物 / ビタミン / ミネラル**。
+  - 値は実データ(DailySummary)を目標・参照値に対する達成率(%)で表示。
+    P/脂質/炭水化物 … NutritionTarget（無ければ 60/60/250 の仮値）、ビタミン/ミネラル … 参照値100（暫定・調整可）。
+  - スタイル：`radarShape: polygon`、黒の同心リング＋軸線（`tickCount: 5`）、薄緑の塗り＋緑の枠線。参照画像に準拠。
+- `home.dart` に `_NutritionRadarChart`（FutureBuilder で summary/target を供給）を追加。以前の CustomPainter 版は撤去。
+- 確認：ホームで五角形が実データ反映で表示されることを画面確認。
+- 留意：ビタミン/ミネラルの参照値は暫定。単位が g と mg で異なるため達成率(%)で正規化して比較している。
