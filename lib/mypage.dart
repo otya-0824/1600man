@@ -1,56 +1,23 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart'; // 保存データの削除に使用
+import 'profile.dart'; // プロフィールページをインポート
+import 'home.dart';
 import 'meal.dart';
 import 'gurahu.dart';
 import 'calendar.dart';
-import 'home.dart';
-import 'profile.dart'; // 上記のProfilePageをインポート
-import 'backend/user_service.dart';   // 【編集箇所】Firebaseへのデータ取得・保存処理を行うUserServiceを追加
 
-// 【編集箇所】ここから22行目まで
 class MypageScreen extends StatefulWidget {
-
-  // 【編集箇所】Firebaseから取得するユーザーIDを受け取る
-  final String? userId;
-
-  const MypageScreen({
-    super.key,
-    this.userId,
-  });
+  const MypageScreen({super.key});
 
   @override
   State<MypageScreen> createState() => _MypageScreenState();
 }
 
 class _MypageScreenState extends State<MypageScreen> {
+  // アイコンを変更できるように状態（State）として保持
   bool _hasCustomImage = false;
 
-  final UserService userService = UserService();  // 【編集箇所】Firebaseのプロフィール情報を扱うUserService
-
-  Map<String, dynamic>? profileData;              // 【編集箇所】Firebaseから取得したプロフィール情報を保存する変数
-
-  // 【編集箇所】ここから51行目まで
-  @override
-  void initState() {
-    super.initState();
-
-    // 【編集箇所】画面を開いたときにFirebaseからプロフィール情報を取得
-    loadProfile();
-  }
-
-  // 【編集箇所】Firebaseからプロフィール情報を取得する処理
-  Future<void> loadProfile() async {
-
-    // 【編集箇所】ユーザーIDがない場合は取得処理を行わない
-    if (widget.userId == null) {
-      return;
-    }
-
-    // 【編集箇所】UserServiceを使ってFirebaseからプロフィールを取得
-    profileData = await userService.getProfile(widget.userId!);
-    if (!mounted) return;
-    setState(() {});
-  }
-
+  // アイコンがタップされたときの処理
   void _changeProfileImage() {
     showDialog(
       context: context,
@@ -79,6 +46,40 @@ class _MypageScreenState extends State<MypageScreen> {
     );
   }
 
+  // ★追加：保存したデータをリセット（削除）する処理
+  void _showResetDialog() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('データのリセット'),
+        content: const Text('保存された食事記録やMyメニューなどのすべてのデータが削除されます。\n本当にリセットしますか？'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('キャンセル'),
+          ),
+          TextButton(
+            onPressed: () async {
+              final prefs = await SharedPreferences.getInstance();
+              await prefs.clear(); // 保存している全データをリセット
+
+              if (mounted) {
+                Navigator.pop(context);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('すべてのデータをリセットしました')),
+                );
+              }
+            },
+            child: const Text(
+              'リセット',
+              style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     const Color primaryGreen = Color(0xFF66BB6A);
@@ -87,6 +88,7 @@ class _MypageScreenState extends State<MypageScreen> {
       backgroundColor: Colors.white,
       body: Column(
         children: [
+          // 1. 上部のプロフィールエリア（緑色の背景）
           Container(
             width: double.infinity,
             padding: const EdgeInsets.only(top: 60.0, bottom: 30.0),
@@ -94,6 +96,7 @@ class _MypageScreenState extends State<MypageScreen> {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
+                // プロフィールアイコン
                 GestureDetector(
                   onTap: _changeProfileImage,
                   child: Stack(
@@ -131,22 +134,26 @@ class _MypageScreenState extends State<MypageScreen> {
                   ),
                 ),
                 const SizedBox(height: 12),
-
-                // 【編集箇所】表示をプロフィールに変更
+                // ユーザー名
                 const Text(
-                  'プロフィール',
-                  style: const TextStyle(
+                  'カロミル 太郎',
+                  style: TextStyle(
                     fontSize: 18.0,
                     fontWeight: FontWeight.bold,
                     color: Colors.white,
                   ),
                 ),
                 const SizedBox(height: 12),
+                
+                // プロフィール編集ボタン（ProfilePageへ遷移）
                 OutlinedButton(
                   onPressed: () {
-                    Navigator.push(
+                    Navigator.pushAndRemoveUntil(
                       context,
-                      MaterialPageRoute(builder: (_) => const ProfilePage()),
+                      MaterialPageRoute(
+                        builder: (context) => const ProfilePage(),
+                      ),
+                      (route) => false,
                     );
                   },
                   style: OutlinedButton.styleFrom(
@@ -155,7 +162,8 @@ class _MypageScreenState extends State<MypageScreen> {
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(20.0),
                     ),
-                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 24, vertical: 8),
                   ),
                   child: const Text(
                     'プロフィール編集',
@@ -169,29 +177,29 @@ class _MypageScreenState extends State<MypageScreen> {
               ],
             ),
           ),
+
+          // 2. メニューリスト
           Expanded(
             child: ListView(
               children: [
+                const _MenuItem(title: '目標設定'),
+                const _MenuItem(title: 'よくある質問'),
+                const _MenuItem(title: '設定'),
+                // ★追加：データリセット用項目
                 _MenuItem(
-                  title: 'プロフィール・目標設定',
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (_) => const ProfilePage()),
-                    );
-                  },
+                  title: 'データをリセット',
+                  isDestructive: true,
+                  onTap: _showResetDialog,
                 ),
-                _MenuItem(title: '体重の記録', onTap: () {}),
-                _MenuItem(title: 'よくある質問', onTap: () {}),
-                _MenuItem(title: '設定', onTap: () {}),
-                _MenuItem(title: 'ログアウト', isLogout: true, onTap: () {}),
               ],
             ),
           ),
         ],
       ),
+
+      // ボトムナビゲーションバー
       bottomNavigationBar: BottomNavigationBar(
-        currentIndex: 4,
+        currentIndex: 4, // マイページをアクティブ表示
         type: BottomNavigationBarType.fixed,
         selectedItemColor: primaryGreen,
         unselectedItemColor: Colors.grey,
@@ -201,7 +209,7 @@ class _MypageScreenState extends State<MypageScreen> {
             case 0:
               Navigator.pushReplacement(
                 context,
-                MaterialPageRoute(builder: (_) => HomePage()),
+                MaterialPageRoute(builder: (_) => HomePage()), // const を削除
               );
               break;
             case 1:
@@ -228,7 +236,8 @@ class _MypageScreenState extends State<MypageScreen> {
           BottomNavigationBarItem(icon: Icon(Icons.home), label: 'ホーム'),
           BottomNavigationBarItem(icon: Icon(Icons.restaurant), label: '記録'),
           BottomNavigationBarItem(icon: Icon(Icons.bar_chart), label: 'グラフ'),
-          BottomNavigationBarItem(icon: Icon(Icons.calendar_month), label: 'カレンダー'),
+          BottomNavigationBarItem(
+              icon: Icon(Icons.calendar_month), label: 'カレンダー'),
           BottomNavigationBarItem(icon: Icon(Icons.person), label: 'マイページ'),
         ],
       ),
@@ -236,15 +245,16 @@ class _MypageScreenState extends State<MypageScreen> {
   }
 }
 
+// メニューの各項目を作る部品（タップイベント・赤文字表示に対応）
 class _MenuItem extends StatelessWidget {
   final String title;
-  final bool isLogout;
-  final VoidCallback onTap;
+  final VoidCallback? onTap;
+  final bool isDestructive;
 
   const _MenuItem({
     required this.title,
-    required this.onTap,
-    this.isLogout = false,
+    this.onTap,
+    this.isDestructive = false,
   });
 
   @override
@@ -257,7 +267,7 @@ class _MenuItem extends StatelessWidget {
             style: TextStyle(
               fontSize: 16.0,
               fontWeight: FontWeight.w500,
-              color: isLogout ? Colors.red : Colors.black87,
+              color: isDestructive ? Colors.red : Colors.black87,
             ),
           ),
           trailing: const Icon(
