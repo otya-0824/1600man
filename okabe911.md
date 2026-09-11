@@ -153,3 +153,24 @@ Web で起動して画面表示・遷移・Firebase 保存まで確認し、`oka
 - `home.dart` に `_NutritionRadarChart`（FutureBuilder で summary/target を供給）を追加。以前の CustomPainter 版は撤去。
 - 確認：ホームで五角形が実データ反映で表示されることを画面確認。
 - 留意：ビタミン/ミネラルの参照値は暫定。単位が g と mg で異なるため達成率(%)で正規化して比較している。
+
+---
+
+## 9. 追加ファイル(せなさんの NutrientGroupService)を配線し、レーダーのビタミン/ミネラルを実スコア化
+
+- せなさんが main に追加した `services/nutrient_group_service.dart` / `models/nutrient_group_score.dart` を活用。
+  ビタミン・ミネラルは項目別に単位が異なるため、目標に対する達成率(ratio)の平均をグループスコアにする。
+- これを使うには「項目別の1日実測」が必要だが、従来はローカル保存時にビタミン/ミネラルを mg 合計へ丸めていた。
+  → **保存経路に微量栄養素の内訳を通す改修(方針A)** を実施。
+- 変更点:
+  - `meal_model.dart` の保存用 `FoodItem` に `Map<String,double> micros` を追加(toMap/fromMap 対応・後方互換)。
+  - `meal_detail.dart`:栄養DB記録時、計算エンジンの `MealEntry` の全微量栄養素を `micros` として保持・保存。
+  - `meal_storage_service.dart`:`getDailyMicros(date)` を追加(1日分を項目別に合計)。
+  - `nutrition_facade.dart`:`defaultTarget()`(同期・Firestore非依存の既定目標)と `loadTargetOrDefault()`(タイムアウト付き)を追加。
+    ※Web では `loadTarget()`(Firestore)が応答せずハングするため、レーダーは既定目標を使用。
+  - `home.dart`:`NutritionFeedbackService.compare()` → `NutrientGroupService` でビタミン/ミネラルの平均達成率を取得し、
+    五角形レーダーの5軸(タンパク質/脂質/炭水化物/ビタミン/ミネラル)を達成率(%)で表示。全0(記録なし)時はプレースホルダ表示。
+- 確認:栄養DBから「ほうれんそう」を記録 → ホームのレーダーの**ビタミン/ミネラル軸が伸びる**ことを画面確認。
+- 留意:
+  - 微量栄養素は**栄養DB経由の記録のみ**付与(手動入力/よく食べる等は内訳なし)。micros 追加前の既存データはビタミン/ミネラル0。
+  - 目標は当面「既定プロフィール」ベース。プロフィール橋渡し(旧ProfileService↔新プロフィール)が入れば本来値になる。

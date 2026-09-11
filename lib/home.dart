@@ -4,6 +4,8 @@ import 'package:fl_chart/fl_chart.dart';
 import 'models/meal.dart';
 import 'models/nutrition_target.dart';
 import 'services/nutrition_facade.dart';
+import 'services/nutrition_feedback_service.dart';
+import 'services/nutrient_group_service.dart';
 import 'meal_storage_service.dart';
 import 'meal.dart';
 import 'gurahu.dart';
@@ -23,6 +25,68 @@ class HomePage extends StatelessWidget {
 
   // 目標(NutritionTarget)は表示のたびに再計算せず、一度だけ計算して使い回す。
   late final Future<NutritionTarget?> _targetFuture = _facade.loadTarget();
+
+  // 栄養バランス(五角形)の5軸の達成率(%)。
+  // せなさんの NutrientGroupService でビタミン/ミネラルをグループ平均する。
+  late final Future<List<double>> _radarFuture = _computeRadarValues();
+
+  Future<List<double>> _computeRadarValues() async {
+    final summary = await _summaryFuture;
+    final micros = await MealStorageService.getDailyMicros(_today);
+    // 目標は Firestore 非依存の既定目標を使用（Web で loadTarget がハングするため）
+    final target = _facade.defaultTarget();
+
+    final comparisons = NutritionFeedbackService().compare(
+      target: target,
+      actualKcal: summary.totalCalorie,
+      actualProtein: summary.totalProtein,
+      actualFat: summary.totalFat,
+      actualCarbohydrate: summary.totalCarbo,
+      actualFiber: micros['fiber'] ?? 0,
+      actualSalt: micros['salt'] ?? 0,
+      actualCholesterol: micros['cholesterol'] ?? 0,
+      actualPotassium: micros['potassium'] ?? 0,
+      actualCalcium: micros['calcium'] ?? 0,
+      actualMagnesium: micros['magnesium'] ?? 0,
+      actualPhosphorus: micros['phosphorus'] ?? 0,
+      actualIron: micros['iron'] ?? 0,
+      actualZinc: micros['zinc'] ?? 0,
+      actualCopper: micros['copper'] ?? 0,
+      actualVitaminA: micros['vitaminA'] ?? 0,
+      actualVitaminD: micros['vitaminD'] ?? 0,
+      actualVitaminE: micros['vitaminE'] ?? 0,
+      actualVitaminK: micros['vitaminK'] ?? 0,
+      actualVitaminB1: micros['vitaminB1'] ?? 0,
+      actualVitaminB2: micros['vitaminB2'] ?? 0,
+      actualNiacin: micros['niacin'] ?? 0,
+      actualVitaminB6: micros['vitaminB6'] ?? 0,
+      actualVitaminB12: micros['vitaminB12'] ?? 0,
+      actualFolate: micros['folate'] ?? 0,
+      actualPantothenicAcid: micros['pantothenicAcid'] ?? 0,
+      actualVitaminC: micros['vitaminC'] ?? 0,
+      actualBiotin: micros['biotin'] ?? 0,
+    );
+
+    double ratioOf(String label) {
+      for (final c in comparisons) {
+        if (c.label == label) return c.ratio;
+      }
+      return 0;
+    }
+
+    final group = NutrientGroupService();
+    final vitamin = group.vitaminScore(comparisons)?.averageRatio ?? 0;
+    final mineral = group.mineralScore(comparisons)?.averageRatio ?? 0;
+
+    // タンパク質 / 脂質 / 炭水化物 / ビタミン / ミネラル の達成率(%)
+    return [
+      ratioOf('たんぱく質') * 100,
+      ratioOf('脂質') * 100,
+      ratioOf('炭水化物') * 100,
+      vitamin * 100,
+      mineral * 100,
+    ];
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -184,19 +248,11 @@ class HomePage extends StatelessWidget {
 
             const SizedBox(height: 20),
 
-            FutureBuilder<NutritionTarget?>(
-              future: _targetFuture,
-              builder: (context, targetSnap) {
-                return FutureBuilder<DailySummary>(
-                  future: _summaryFuture,
-                  builder: (context, sumSnap) {
-                    final summary = sumSnap.data ?? const DailySummary();
-                    return _NutritionRadarChart(
-                      summary: summary,
-                      target: targetSnap.data,
-                    );
-                  },
-                );
+            FutureBuilder<List<double>>(
+              future: _radarFuture,
+              builder: (context, snap) {
+                final values = snap.data ?? const [0, 0, 0, 0, 0];
+                return _NutritionRadarChart(values: values);
               },
             ),
           ],
@@ -310,29 +366,31 @@ class HomePage extends StatelessWidget {
 // 実データ(DailySummary)を目標・参照値に対する達成率(%)で表示する。
 // =====================================================================
 class _NutritionRadarChart extends StatelessWidget {
-  final DailySummary summary;
-  final NutritionTarget? target;
+  /// 5軸の達成率(%)。順に タンパク質 / 脂質 / 炭水化物 / ビタミン / ミネラル。
+  final List<double> values;
 
-  const _NutritionRadarChart({required this.summary, required this.target});
+  const _NutritionRadarChart({required this.values});
 
   @override
   Widget build(BuildContext context) {
-    // ビタミン・ミネラルは専用の目標が無いため参照値で正規化（暫定・調整可）
-    const refVitamin = 100.0;
-    const refMineral = 100.0;
-
-    double pct(double actual, double ref) => ref <= 0 ? 0 : actual / ref * 100;
-
-    final values = <double>[
-      pct(summary.totalProtein, target?.targetProtein ?? 60),
-      pct(summary.totalFat, target?.targetFat ?? 60),
-      pct(summary.totalCarbo, target?.targetCarbohydrate ?? 250),
-      pct(summary.totalVitamin, refVitamin),
-      pct(summary.totalMineral, refMineral),
-    ];
     const titles = ['タンパク質', '脂質', '炭水化物', 'ビタミン', 'ミネラル'];
 
     const green = Color(0xFF66BB6A);
+
+    // すべて0(記録なし等)のときは RadarChart の目盛り計算が破綻するため、
+    // プレースホルダを表示する。
+    if (values.every((v) => v <= 0)) {
+      return Container(
+        height: 320,
+        width: double.infinity,
+        alignment: Alignment.center,
+        color: Colors.white,
+        child: const Text(
+          '記録がありません',
+          style: TextStyle(color: Colors.black38, fontSize: 14),
+        ),
+      );
+    }
 
     return Container(
       height: 320,

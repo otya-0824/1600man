@@ -52,6 +52,32 @@ class NutritionFacade {
   NutritionTarget targetFor(UserProfile profile) =>
       _targetService.calculate(profile);
 
+  // プロフィール未登録時のフォールバック用の標準プロフィール
+  // (30歳・男性・中程度の活動・維持)。栄養バランスの達成率を出す際に、
+  // 目標が取得できない場合の基準として使う。
+  static const UserProfile _defaultProfile = UserProfile(
+    heightCm: 170,
+    weightKg: 60,
+    age: 30,
+    gender: Gender.male,
+    activityLevel: ActivityLevel.moderate,
+    goal: Goal.maintain,
+  );
+
+  /// 標準プロフィールから算出した目標(同期・Firestore非依存)。
+  /// 栄養バランスの達成率の基準として使う。
+  NutritionTarget defaultTarget() => targetFor(_defaultProfile);
+
+  /// 目標を取得。未登録(null)や取得が遅い/失敗した場合は
+  /// 標準プロフィールから算出した目標を返す。
+  /// (Web では Firestore 取得が応答しないことがあるためタイムアウトを設ける)
+  Future<NutritionTarget> loadTargetOrDefault() async {
+    final t = await loadTarget()
+        .timeout(const Duration(seconds: 3), onTimeout: () => null)
+        .catchError((_) => null);
+    return t ?? targetFor(_defaultProfile);
+  }
+
   // ------------------------------------------------------------
   // ③④ 食品名+量(g) → 栄養計算 → Firestore保存用の Meal
   // ------------------------------------------------------------

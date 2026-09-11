@@ -53,6 +53,23 @@ class MealStorageService {
     );
   }
 
+  // 指定日の微量栄養素(項目別)の合計を返す。キーは 'vitaminA' 等。
+  // 栄養バランスのスコア算出(NutritionFeedbackService.compare)に渡す実測値。
+  static Future<Map<String, double>> getDailyMicros(DateTime date) async {
+    final ds = dateStr(date);
+    final totals = <String, double>{};
+    for (final type in mealTypes) {
+      final meal = await getDailyMeal("${ds}_$type");
+      if (meal == null) continue;
+      for (final food in meal.foods) {
+        food.micros.forEach((k, v) {
+          totals[k] = (totals[k] ?? 0) + v;
+        });
+      }
+    }
+    return totals;
+  }
+
   // 期間内(start〜endの各日)の合計をまとめて返す（キーは "2026-08-05" 形式）。
   static Future<Map<String, DailySummary>> getSummariesInRange(
     DateTime start,

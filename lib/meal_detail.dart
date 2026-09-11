@@ -240,6 +240,32 @@ class _MealDetailPageState extends State<MealDetailPage> {
       "carbs": double.parse(entry.carbohydrate.toStringAsFixed(1)),
       "vitamin": 0.0,
       "mineral": 0.0,
+      // 計算エンジンの全微量栄養素を保持（栄養バランスのスコア算出に使用）
+      "micros": <String, double>{
+        "fiber": entry.fiber,
+        "salt": entry.salt,
+        "cholesterol": entry.cholesterol,
+        "potassium": entry.potassium,
+        "calcium": entry.calcium,
+        "magnesium": entry.magnesium,
+        "phosphorus": entry.phosphorus,
+        "iron": entry.iron,
+        "zinc": entry.zinc,
+        "copper": entry.copper,
+        "vitaminA": entry.vitaminA,
+        "vitaminD": entry.vitaminD,
+        "vitaminE": entry.vitaminE,
+        "vitaminK": entry.vitaminK,
+        "vitaminB1": entry.vitaminB1,
+        "vitaminB2": entry.vitaminB2,
+        "niacin": entry.niacin,
+        "vitaminB6": entry.vitaminB6,
+        "vitaminB12": entry.vitaminB12,
+        "folate": entry.folate,
+        "pantothenicAcid": entry.pantothenicAcid,
+        "vitaminC": entry.vitaminC,
+        "biotin": entry.biotin,
+      },
       "icon": Icons.local_dining,
     });
   }
@@ -426,6 +452,11 @@ class _MealDetailPageState extends State<MealDetailPage> {
                           carbs: (item["carbs"] ?? 0.0).toDouble(),
                           vitamin: (item["vitamin"] ?? 0.0).toDouble(),
                           mineral: (item["mineral"] ?? 0.0).toDouble(),
+                          micros: (item["micros"] as Map?)?.map(
+                                (k, v) =>
+                                    MapEntry(k.toString(), (v as num).toDouble()),
+                              ) ??
+                              const {},
                         );
                       }).toList();
 

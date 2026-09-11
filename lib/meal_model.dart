@@ -10,6 +10,11 @@ class FoodItem {
   final double vitamin;
   final double mineral;
 
+  /// 微量栄養素の内訳(項目別)。栄養DB経由の記録で計算エンジンから付与される。
+  /// キー例: 'vitaminA','calcium','iron' 等（compare()/NutrientGroupServiceで使用）。
+  /// 手動入力など内訳が無い場合は空マップ。
+  final Map<String, double> micros;
+
   FoodItem({
     required this.name,
     required this.amount,
@@ -19,6 +24,7 @@ class FoodItem {
     this.carbs = 0.0,
     this.vitamin = 0.0,
     this.mineral = 0.0,
+    this.micros = const {},
   });
 
   factory FoodItem.fromMap(Map<String, dynamic> map) {
@@ -31,6 +37,10 @@ class FoodItem {
       carbs: (map['carbs'] ?? 0.0).toDouble(),
       vitamin: (map['vitamin'] ?? 0.0).toDouble(),
       mineral: (map['mineral'] ?? 0.0).toDouble(),
+      micros: (map['micros'] as Map?)?.map(
+            (k, v) => MapEntry(k.toString(), (v as num).toDouble()),
+          ) ??
+          const {},
     );
   }
 
@@ -44,6 +54,7 @@ class FoodItem {
       'carbs': carbs,
       'vitamin': vitamin,
       'mineral': mineral,
+      'micros': micros,
     };
   }
 }
