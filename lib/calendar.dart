@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'home.dart';
 import 'meal.dart';
 import 'gurahu.dart';
@@ -193,7 +193,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
             case 0:
               Navigator.pushReplacement(
                 context,
-                MaterialPageRoute(builder: (_) => HomePage()),
+                MaterialPageRoute(builder: (_) => HomePage()), // const を削除して修正
               );
               break;
             case 1:
@@ -238,7 +238,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
     int totalCells = leadingSpaces + daysInMonth;
     int totalRows = (totalCells / 7).ceil();
 
-    // 今日の日付を取得
+    // 本日の日付を取得
     DateTime now = DateTime.now();
 
     return Column(

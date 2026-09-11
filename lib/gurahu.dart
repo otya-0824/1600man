@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'home.dart';
 import 'meal.dart';
 import 'calendar.dart';
@@ -59,9 +59,9 @@ class _GraphScreenState extends State<GraphScreen> {
     DateTime sunday = _currentMonday.add(const Duration(days: 6));
     
     if (_currentMonday.year != sunday.year) {
-      return '${_currentMonday.year}年${_currentMonday.month}/${_currentMonday.day}（月）〜 ${sunday.year}年${sunday.month}/${sunday.day}（日）';
+      return '${_currentMonday.year}年${_currentMonday.month}/${_currentMonday.day}(月) 〜 ${sunday.year}年${sunday.month}/${sunday.day}(日)';
     } else {
-      return '${_currentMonday.year}年 ${_currentMonday.month}/${_currentMonday.day}（月）〜 ${sunday.month}/${sunday.day}（日）';
+      return '${_currentMonday.year}年 ${_currentMonday.month}/${_currentMonday.day}(月) 〜 ${sunday.month}/${sunday.day}(日)';
     }
   }
 
@@ -264,7 +264,7 @@ class _GraphScreenState extends State<GraphScreen> {
                                       );
                                     }),
                                     
-                                    // 目標ライン（黄色い横棒）
+                                    // 目標ライン（黄色の横線）
                                     Positioned(
                                       top: chartHeight * (1 - (targetCalories / topScaleValue)),
                                       left: 0,
@@ -350,7 +350,7 @@ class _GraphScreenState extends State<GraphScreen> {
             case 0:
               Navigator.pushReplacement(
                 context,
-                MaterialPageRoute(builder: (_) => HomePage()),
+                MaterialPageRoute(builder: (_) => HomePage()), // const を外して修正
               );
               break;
             case 1:
