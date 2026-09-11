@@ -122,3 +122,19 @@ Web で起動して画面表示・遷移・Firebase 保存まで確認し、`oka
   - `MypageScreen.loadProfile` を `widget.userId ?? currentUserId` で読むよう変更（ボトムナビ経由でも取得可）。
 - 確認：保存 → 再度編集画面を開くと値が復元。さらに**完全リロード（セッションまたぎ）後も復元**を確認。
 - 補足：将来ログイン/マルチユーザー化する場合は、固定 `'current'` を認証 uid に置き換える。
+
+---
+
+## 7. カレンダーの達成度をホームと同じ実データに統一
+
+- 現象：ホームでは今日（9/11）にカロリー229が出るのに、カレンダーの9/11には達成度ドットが出ない。
+- 原因：`calendar.dart` が**ハードコードのサンプル値** `_backendDailyStatusMap`（8月の 1/2/3/17/18/19 固定）を表示しており、
+  実データ（ホームが使う `MealStorageService`）を参照していなかった。
+- 対応：
+  - サンプル map を廃止し、`MealStorageService.getSummariesInRange(月初, 月末)`（ホームと同じローカル記録）から算出。
+  - 目標は `NutritionFacade.loadTarget()` を使用。旧 `ProfileService` 未整備で null の場合は
+    **グラフ画面と同じ 1200kcal** をフォールバックに採用。
+  - 達成率でステータス判定：`90%以上=達成(緑) / 70〜90%=やや不足(黄) / 70%未満=不足(赤) / 記録なし=表示なし`。
+  - 月切替（`_changeMonth`）と `initState` で `_loadStatuses()` を呼び再計算。build のキーを `MealStorageService.dateStr`（yyyy-MM-dd）に統一。
+- 確認：9月の今日（11日）に**赤ドット（不足）**＝229/1200≒19% が表示。8月の旧サンプル固定ドットは消え、実データのみに。
+- 留意：目標の根本解決は「旧 ProfileService ↔ 新プロフィール(users/current) の橋渡し」。実装すればフォールバック 1200 は不要になる。

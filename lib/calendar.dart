@@ -3,6 +3,8 @@ import 'home.dart';
 import 'meal.dart';
 import 'gurahu.dart';
 import 'mypage.dart';
+import 'meal_storage_service.dart';
+import 'services/nutrition_facade.dart';
 
 class CalendarScreen extends StatefulWidget {
   const CalendarScreen({super.key});
@@ -16,26 +18,54 @@ class _CalendarScreenState extends State<CalendarScreen> {
   int _currentYear = 2026;
   int _currentMonth = 8;
 
-  // =====================================================================
-  // 【バックエンド担当者様へのデータ連携仕様】
-  // 日付ごとの達成状況を以下の形式（Map<String, String> または Enum）で
-  // バックエンドから受け取り、この変数（または状態管理）に格納してください。
-  //
-  // キーの形式: "yyyy-M-d" (例: "2026-8-17" または "2026-08-17")
-  // 値（ステータス）の種類:
-  //   - 'success' (または 1) -> 緑の丸（達成）
-  //   - 'warning' (または 2) -> 黄色の丸（やや不足）
-  //   - 'danger'  (または 3) -> 赤の丸（不足）
-  //   - null または 未登録     -> 丸を表示しない
-  // =====================================================================
-  final Map<String, String> _backendDailyStatusMap = {
-    "2026-8-1": 'success',
-    "2026-8-2": 'warning',
-    "2026-8-3": 'danger',
-    "2026-8-17": 'success', // サンプル: 17日は達成（緑）
-    "2026-8-18": 'warning', // サンプル: 18日はやや不足（黄）
-    "2026-8-19": 'danger',  // サンプル: 19日は不足（赤）
-  };
+  // 日付ごとの達成状況。キーは "yyyy-MM-dd"（MealStorageService.dateStr と同形式）。
+  //   'success' -> 緑（達成） / 'warning' -> 黄（やや不足）
+  //   'danger'  -> 赤（不足） / 未登録 -> 丸を表示しない
+  // ホーム画面と同じ MealStorageService（ローカルの食事記録）から算出する。
+  final Map<String, String> _dailyStatusMap = {};
+  final NutritionFacade _facade = NutritionFacade();
+
+  @override
+  void initState() {
+    super.initState();
+    _loadStatuses();
+  }
+
+  // 表示中の月の食事記録（ローカル）と目標カロリーから日ごとの達成度を算出する。
+  Future<void> _loadStatuses() async {
+    final first = DateTime(_currentYear, _currentMonth, 1);
+    final last = DateTime(_currentYear, _currentMonth + 1, 0);
+
+    // 目標カロリー。プロフィール未整備で取得できない場合はグラフ画面と同じ 1200 を使う。
+    final target = await _facade.loadTarget();
+    final targetKcal =
+        (target != null && target.targetKcal > 0) ? target.targetKcal : 1200.0;
+
+    final summaries = await MealStorageService.getSummariesInRange(first, last);
+
+    final map = <String, String>{};
+    summaries.forEach((dateKey, summary) {
+      final status = _statusFor(summary.totalCalorie, targetKcal);
+      if (status != null) map[dateKey] = status;
+    });
+
+    if (!mounted) return;
+    setState(() {
+      _dailyStatusMap
+        ..clear()
+        ..addAll(map);
+    });
+  }
+
+  // カロリーの達成率でステータスを決める。
+  //   90%以上=達成 / 70〜90%=やや不足 / 70%未満=不足 / 記録なし=null
+  String? _statusFor(double totalCalorie, double targetKcal) {
+    if (totalCalorie <= 0) return null; // その日の記録が無ければドットなし
+    final ratio = totalCalorie / targetKcal;
+    if (ratio >= 0.9) return 'success';
+    if (ratio >= 0.7) return 'warning';
+    return 'danger';
+  }
 
   // 月を前後に移動する処理（2026年8月 〜 2090年12月）
   void _changeMonth(int offset) {
@@ -56,9 +86,10 @@ class _CalendarScreenState extends State<CalendarScreen> {
 
       _currentYear = newYear;
       _currentMonth = newMonth;
-      
-      // TODO: 月が切り替わったタイミングで、バックエンドに新月のデータを要求するAPIを叩く想定
     });
+
+    // 切り替えた月の実データで達成度を再計算する。
+    _loadStatuses();
   }
 
   // ステータス文字列から対応する色を返すヘルパー関数
@@ -250,9 +281,13 @@ class _CalendarScreenState extends State<CalendarScreen> {
 
             bool isEffectiveDay = index >= leadingSpaces && day <= daysInMonth;
 
-            // 各有効な日付に対応するステータスを取得するためのキーを作成
-            String dateKey = "$year-$month-$day";
-            String? status = isEffectiveDay ? _backendDailyStatusMap[dateKey] : null;
+            // 各有効な日付のステータスを取得（キーは MealStorageService と同形式）
+            String? status;
+            if (isEffectiveDay) {
+              final dateKey =
+                  MealStorageService.dateStr(DateTime(year, month, day));
+              status = _dailyStatusMap[dateKey];
+            }
             Color? dotColor = _getStatusColor(status);
 
             // 今日かどうかを判定
