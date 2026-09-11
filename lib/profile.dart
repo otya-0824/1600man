@@ -1,7 +1,9 @@
-// // Firebaseに送る予定のデータは110~119
-import 'package:flutter/material.dart';
-import 'mypage.dart'; // マイページをインポート
-import 'backend/user_service.dart';  // 【編集箇所】Firebaseへのデータ保存処理を行うUserServiceを追加
+﻿import 'package:flutter/material.dart';
+import 'home.dart';
+import 'mypage.dart'; // MypageScreenへ遷移するために追加
+import 'models/user_profile.dart';
+import 'data/frontend_label_mapping.dart';
+import 'services/profile_service.dart';
 
 class ProfilePage extends StatefulWidget {
   const ProfilePage({super.key});
@@ -11,7 +13,6 @@ class ProfilePage extends StatefulWidget {
 }
 
 class _ProfilePageState extends State<ProfilePage> {
-  final UserService userService = UserService();  // 【編集箇所】Firebaseへの保存処理を行うUserServiceを使用
   // =========================
   // プロフィール情報
   // =========================
@@ -22,9 +23,16 @@ class _ProfilePageState extends State<ProfilePage> {
   String selectedMonth = "1";
   String selectedDay = "1";
 
-  String goal = "ダイエット";
+  // 目標ラベルはpanpanの計算エンジン(Goal enum)と揃える(減量/維持/増量/筋トレ)
+  String goal = "減量";
 
   int age = 0;
+
+  // Firestoreとのやり取り担当
+  final ProfileService _profileService = ProfileService();
+
+  // 保存・読み込み中の状態（ボタン二重押し防止・ローディング表示用）
+  bool isSaving = false;
 
   // =========================
   // 入力欄コントローラー
@@ -43,6 +51,29 @@ class _ProfilePageState extends State<ProfilePage> {
   void initState() {
     super.initState();
     calculateAge();
+    loadSavedProfile(); // 起動時に保存済みプロフィールを読み込む（開き直しても残る）
+  }
+
+  // =========================
+  // 保存済みプロフィールの読み込み
+  // 前回登録した内容をFirestoreから取り出して入力欄に反映する
+  // =========================
+
+  Future<void> loadSavedProfile() async {
+    final profile = await _profileService.loadProfile();
+    if (profile == null || !mounted) return;
+
+    // panpanのUserProfileは生年月日・目標体重を持たないため、
+    // 保存済みの身長・体重・性別・目標・年齢のみを復元する。
+    setState(() {
+      isMale = profile.gender == Gender.male;
+      goal = profile.goal.label;
+      heightController.text =
+          profile.heightCm == 0 ? "" : profile.heightCm.toString();
+      weightController.text =
+          profile.weightKg == 0 ? "" : profile.weightKg.toString();
+      age = profile.age;
+    });
   }
 
   // =========================
@@ -93,47 +124,36 @@ class _ProfilePageState extends State<ProfilePage> {
   // 登録処理
   // 将来的にFirebase送信
   // =========================
-  // 【編集箇所】ここからFirebaseへの保存処理
+
   Future<void> registerProfile() async {
-  final String gender = isMale ? "男性" : "女性";
+    if (isSaving) return; // 二重押し防止
 
-  final String birthDate =
-      "$selectedYear-$selectedMonth-$selectedDay";
+    // okabeの入力UIから、panpanの計算エンジンが要求するUserProfileを組み立てる。
+    // 活動量の入力UIはまだ無いため、暫定でmoderate(普通)を既定値にしている。
+    final profile = UserProfile(
+      heightCm: double.tryParse(heightController.text) ?? 0,
+      weightKg: double.tryParse(weightController.text) ?? 0,
+      age: age,
+      gender: isMale ? Gender.male : Gender.female,
+      activityLevel: ActivityLevel.moderate,
+      goal: parseGoalLabel(goal),
+    );
 
-  final double height =
-      double.parse(heightController.text);
+    setState(() => isSaving = true);
 
-  final double weight =
-      double.parse(weightController.text);
+    // Firestoreに保存（開き直しても残るようクラウドに書き込む）
+    await _profileService.saveProfile(profile);
 
-  final double goalWeight =
-      double.parse(goalWeightController.text);
+    if (!mounted) return;
+    setState(() => isSaving = false);
 
-  // saveProfile()に各入力データを渡して保存する
-  final String userId = await userService.saveProfile(
-    gender: gender,
-    birthDate: birthDate,
-    height: height,
-    weight: weight,
-    goal: goal,
-    goalWeight: goalWeight,
-  );
-
-  print("プロフィールを保存しました");
-  print("ユーザーID: $userId");
-
-  // 登録完了後にホームではなくマイページへ遷移
-  // 登録したユーザーIDをマイページへ渡す
-  if (!mounted) return;
-  Navigator.pushReplacement(
-    context,
-    MaterialPageRoute(
-      builder: (context) => MypageScreen(
-        userId: userId,
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => HomePage(),
       ),
-    ),
-  );
-}
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -144,6 +164,22 @@ class _ProfilePageState extends State<ProfilePage> {
         backgroundColor: Colors.white,
         elevation: 0,
         centerTitle: true,
+        // ★ 戻る矢印アイコンを追加
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back, color: Colors.black),
+          onPressed: () {
+            if (Navigator.canPop(context)) {
+              Navigator.pop(context);
+            } else {
+              Navigator.pushReplacement(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const MypageScreen(),
+                ),
+              );
+            }
+          },
+        ),
         title: const Text(
           "プロフィール登録",
           style: TextStyle(
@@ -328,8 +364,8 @@ class _ProfilePageState extends State<ProfilePage> {
             // =========================
 
             TextFormField(
+              key: ValueKey(age), // ageが変わったら表示を作り直す
               readOnly: true,
-              key: ValueKey(age),
               initialValue: "$age歳",
               decoration: customDecoration("年齢"),
             ),
@@ -361,8 +397,8 @@ class _ProfilePageState extends State<ProfilePage> {
               decoration: customDecoration("目標"),
               items: const [
                 DropdownMenuItem(
-                  value: "ダイエット",
-                  child: Text("ダイエット"),
+                  value: "減量",
+                  child: Text("減量"),
                 ),
                 DropdownMenuItem(
                   value: "維持",
@@ -403,7 +439,7 @@ class _ProfilePageState extends State<ProfilePage> {
               width: double.infinity,
               height: 55,
               child: ElevatedButton(
-                onPressed: registerProfile,
+                onPressed: isSaving ? null : registerProfile,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.green,
                   shape: RoundedRectangleBorder(
@@ -411,14 +447,23 @@ class _ProfilePageState extends State<ProfilePage> {
                         BorderRadius.circular(14),
                   ),
                 ),
-                child: const Text(
-                  "登録",
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
+                child: isSaving
+                    ? const SizedBox(
+                        width: 22,
+                        height: 22,
+                        child: CircularProgressIndicator(
+                          color: Colors.white,
+                          strokeWidth: 2,
+                        ),
+                      )
+                    : const Text(
+                        "登録",
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
               ),
             ),
           ],
