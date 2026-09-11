@@ -12,9 +12,26 @@ class CalendarScreen extends StatefulWidget {
 }
 
 class _CalendarScreenState extends State<CalendarScreen> {
-  // 2026年8月スタート
-  int _currentYear = 2026;
-  int _currentMonth = 8;
+  late int _currentYear;
+  late int _currentMonth;
+
+  @override
+  void initState() {
+    super.initState();
+    // 開いたときの実際の現在日時を取得し、初期表示に設定する
+    DateTime now = DateTime.now();
+    _currentYear = now.year;
+    _currentMonth = now.month;
+
+    // アプリの許可範囲（2026年8月 〜 2090年12月）に収まるようクランプ処理
+    if (_currentYear < 2026 || (_currentYear == 2026 && _currentMonth < 8)) {
+      _currentYear = 2026;
+      _currentMonth = 8;
+    } else if (_currentYear > 2090 || (_currentYear == 2090 && _currentMonth > 12)) {
+      _currentYear = 2090;
+      _currentMonth = 12;
+    }
+  }
 
   // =====================================================================
   // 【バックエンド担当者様へのデータ連携仕様】
