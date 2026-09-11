@@ -21,6 +21,8 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
+      // 日本語フォントを同梱して既定に設定（Web で CDN 取得漏れによる豆腐表示を防ぐ）
+      theme: ThemeData(fontFamily: 'NotoSansJP'),
       home: const RoudoScreen(),
     );
   }

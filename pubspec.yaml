@@ -95,3 +95,8 @@ flutter:
 
   assets:
     - assets/food_database.json
+
+  fonts:
+    - family: NotoSansJP
+      fonts:
+        - asset: assets/fonts/NotoSansJP-VF.ttf

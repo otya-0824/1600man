@@ -91,4 +91,18 @@ Web で起動して画面表示・遷移・Firebase 保存まで確認し、`oka
 - **旧 `ProfileService`（`models/user_profile.dart`）経由の保存経路は未使用に**。ホームのカロリー計算が
   旧プロフィールを参照している場合、新プロフィール画面の値が反映されない。必要なら橋渡しを実装する。
 - 一部漢字の**豆腐表示**（今日 / 歳 / 体重 / 目標 など）は Web フォント字形サブセット由来の既存表示問題。
-  今回の統合とは無関係。必要ならフォント指定で対応可能。
+  今回の統合とは無関係。→ **下記 5 で解消済み。**
+
+---
+
+## 5. 日本語フォントの豆腐（□）表示を解消（本番対応）
+
+- 原因：Flutter Web（CanvasKit）が日本語グリフを Google Fonts（gstatic）の **NotoSansJP をサブセット分割で逐次取得**しており、
+  取得漏れのサブセットに含まれる漢字（日 / 素 / 足 / 歳 / 標 など）が豆腐になっていた（CDN 依存の取得漏れ）。ソース文字列は正常。
+- 対応（本番でも直る根本対応・CDN 非依存）：
+  - **Noto Sans JP（OFL）を同梱**：`assets/fonts/NotoSansJP-VF.ttf`（Google Fonts 公式リポジトリの可変フォント, 約9.6MB）。
+  - `pubspec.yaml` の `flutter.fonts` に `family: NotoSansJP` を登録。
+  - `lib/main.dart` の `MaterialApp` に `theme: ThemeData(fontFamily: 'NotoSansJP')` を設定（アプリ全体の既定フォント）。
+- 確認：ホーム「今日の栄養サマリー」「記録」、グラフ「栄養素グラフ / 脂質 / 平均 / 目標」など、豆腐が全画面で解消。
+- ブランチ運用：**okabe ブランチのみ**にコミット。main へはまだ push していない（指示による）。
+- 留意：Web バンドルがフォント分（約9.6MB）増える。将来サブセット化（必要字形のみ）で軽量化も可能。
