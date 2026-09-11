@@ -1,22 +1,56 @@
 import 'package:flutter/material.dart';
-import 'profile.dart'; // プロフィールページをインポート
-import 'home.dart';
 import 'meal.dart';
 import 'gurahu.dart';
 import 'calendar.dart';
+import 'home.dart';
+import 'profile.dart'; // 上記のProfilePageをインポート
+import 'backend/user_service.dart';   // 【編集箇所】Firebaseへのデータ取得・保存処理を行うUserServiceを追加
 
+// 【編集箇所】ここから22行目まで
 class MypageScreen extends StatefulWidget {
-  const MypageScreen({super.key});
+
+  // 【編集箇所】Firebaseから取得するユーザーIDを受け取る
+  final String? userId;
+
+  const MypageScreen({
+    super.key,
+    this.userId,
+  });
 
   @override
   State<MypageScreen> createState() => _MypageScreenState();
 }
 
 class _MypageScreenState extends State<MypageScreen> {
-  // アイコンを変更できるように状態（State）として保持
   bool _hasCustomImage = false;
 
-  // アイコンがタップされたときの処理
+  final UserService userService = UserService();  // 【編集箇所】Firebaseのプロフィール情報を扱うUserService
+
+  Map<String, dynamic>? profileData;              // 【編集箇所】Firebaseから取得したプロフィール情報を保存する変数
+
+  // 【編集箇所】ここから51行目まで
+  @override
+  void initState() {
+    super.initState();
+
+    // 【編集箇所】画面を開いたときにFirebaseからプロフィール情報を取得
+    loadProfile();
+  }
+
+  // 【編集箇所】Firebaseからプロフィール情報を取得する処理
+  Future<void> loadProfile() async {
+
+    // 【編集箇所】ユーザーIDがない場合は取得処理を行わない
+    if (widget.userId == null) {
+      return;
+    }
+
+    // 【編集箇所】UserServiceを使ってFirebaseからプロフィールを取得
+    profileData = await userService.getProfile(widget.userId!);
+    if (!mounted) return;
+    setState(() {});
+  }
+
   void _changeProfileImage() {
     showDialog(
       context: context,
@@ -53,7 +87,6 @@ class _MypageScreenState extends State<MypageScreen> {
       backgroundColor: Colors.white,
       body: Column(
         children: [
-          // 1. 上部のプロフィールエリア（緑色の背景）
           Container(
             width: double.infinity,
             padding: const EdgeInsets.only(top: 60.0, bottom: 30.0),
@@ -61,7 +94,6 @@ class _MypageScreenState extends State<MypageScreen> {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                // プロフィールアイコン
                 GestureDetector(
                   onTap: _changeProfileImage,
                   child: Stack(
@@ -99,26 +131,22 @@ class _MypageScreenState extends State<MypageScreen> {
                   ),
                 ),
                 const SizedBox(height: 12),
-                // ユーザー名
+
+                // 【編集箇所】表示をプロフィールに変更
                 const Text(
-                  'カロミル 太郎',
-                  style: TextStyle(
+                  'プロフィール',
+                  style: const TextStyle(
                     fontSize: 18.0,
                     fontWeight: FontWeight.bold,
                     color: Colors.white,
                   ),
                 ),
                 const SizedBox(height: 12),
-                
-                // プロフィール編集ボタン（ProfilePageへ遷移）
                 OutlinedButton(
                   onPressed: () {
-                    Navigator.pushAndRemoveUntil(
+                    Navigator.push(
                       context,
-                      MaterialPageRoute(
-                        builder: (context) => const ProfilePage(),
-                      ),
-                      (route) => false,
+                      MaterialPageRoute(builder: (_) => const ProfilePage()),
                     );
                   },
                   style: OutlinedButton.styleFrom(
@@ -127,8 +155,7 @@ class _MypageScreenState extends State<MypageScreen> {
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(20.0),
                     ),
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 24, vertical: 8),
+                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
                   ),
                   child: const Text(
                     'プロフィール編集',
@@ -142,23 +169,29 @@ class _MypageScreenState extends State<MypageScreen> {
               ],
             ),
           ),
-
-          // 2. メニューリスト
           Expanded(
             child: ListView(
-              children: const [
-                _MenuItem(title: '目標設定'),
-                _MenuItem(title: 'よくある質問'),
-                _MenuItem(title: '設定'),
+              children: [
+                _MenuItem(
+                  title: 'プロフィール・目標設定',
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => const ProfilePage()),
+                    );
+                  },
+                ),
+                _MenuItem(title: '体重の記録', onTap: () {}),
+                _MenuItem(title: 'よくある質問', onTap: () {}),
+                _MenuItem(title: '設定', onTap: () {}),
+                _MenuItem(title: 'ログアウト', isLogout: true, onTap: () {}),
               ],
             ),
           ),
         ],
       ),
-
-      // ボトムナビゲーションバー
       bottomNavigationBar: BottomNavigationBar(
-        currentIndex: 4, // マイページをアクティブ表示
+        currentIndex: 4,
         type: BottomNavigationBarType.fixed,
         selectedItemColor: primaryGreen,
         unselectedItemColor: Colors.grey,
@@ -168,7 +201,7 @@ class _MypageScreenState extends State<MypageScreen> {
             case 0:
               Navigator.pushReplacement(
                 context,
-                MaterialPageRoute(builder: (_) => const HomePage()),
+                MaterialPageRoute(builder: (_) => HomePage()),
               );
               break;
             case 1:
@@ -195,8 +228,7 @@ class _MypageScreenState extends State<MypageScreen> {
           BottomNavigationBarItem(icon: Icon(Icons.home), label: 'ホーム'),
           BottomNavigationBarItem(icon: Icon(Icons.restaurant), label: '記録'),
           BottomNavigationBarItem(icon: Icon(Icons.bar_chart), label: 'グラフ'),
-          BottomNavigationBarItem(
-              icon: Icon(Icons.calendar_month), label: 'カレンダー'),
+          BottomNavigationBarItem(icon: Icon(Icons.calendar_month), label: 'カレンダー'),
           BottomNavigationBarItem(icon: Icon(Icons.person), label: 'マイページ'),
         ],
       ),
@@ -204,11 +236,16 @@ class _MypageScreenState extends State<MypageScreen> {
   }
 }
 
-// メニューの各項目を作る部品
 class _MenuItem extends StatelessWidget {
   final String title;
+  final bool isLogout;
+  final VoidCallback onTap;
 
-  const _MenuItem({required this.title});
+  const _MenuItem({
+    required this.title,
+    required this.onTap,
+    this.isLogout = false,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -217,17 +254,17 @@ class _MenuItem extends StatelessWidget {
         ListTile(
           title: Text(
             title,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 16.0,
               fontWeight: FontWeight.w500,
-              color: Colors.black87,
+              color: isLogout ? Colors.red : Colors.black87,
             ),
           ),
           trailing: const Icon(
             Icons.chevron_right,
             color: Colors.grey,
           ),
-          onTap: () {},
+          onTap: onTap,
         ),
         const Divider(height: 1, thickness: 1, color: Colors.black12),
       ],

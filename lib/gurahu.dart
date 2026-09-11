@@ -350,7 +350,7 @@ class _GraphScreenState extends State<GraphScreen> {
             case 0:
               Navigator.pushReplacement(
                 context,
-                MaterialPageRoute(builder: (_) => const HomePage()),
+                MaterialPageRoute(builder: (_) => HomePage()),
               );
               break;
             case 1:
