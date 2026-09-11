@@ -1,5 +1,4 @@
-﻿import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart'; // 保存データの削除に使用
+import 'package:flutter/material.dart';
 import 'profile.dart'; // プロフィールページをインポート
 import 'home.dart';
 import 'meal.dart';
@@ -40,40 +39,6 @@ class _MypageScreenState extends State<MypageScreen> {
               );
             },
             child: const Text('変更する'),
-          ),
-        ],
-      ),
-    );
-  }
-
-  // ★追加：保存したデータをリセット（削除）する処理
-  void _showResetDialog() {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('データのリセット'),
-        content: const Text('保存された食事記録やMyメニューなどのすべてのデータが削除されます。\n本当にリセットしますか？'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('キャンセル'),
-          ),
-          TextButton(
-            onPressed: () async {
-              final prefs = await SharedPreferences.getInstance();
-              await prefs.clear(); // 保存している全データをリセット
-
-              if (mounted) {
-                Navigator.pop(context);
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('すべてのデータをリセットしました')),
-                );
-              }
-            },
-            child: const Text(
-              'リセット',
-              style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold),
-            ),
           ),
         ],
       ),
@@ -181,16 +146,10 @@ class _MypageScreenState extends State<MypageScreen> {
           // 2. メニューリスト
           Expanded(
             child: ListView(
-              children: [
-                const _MenuItem(title: '目標設定'),
-                const _MenuItem(title: 'よくある質問'),
-                const _MenuItem(title: '設定'),
-                // ★追加：データリセット用項目
-                _MenuItem(
-                  title: 'データをリセット',
-                  isDestructive: true,
-                  onTap: _showResetDialog,
-                ),
+              children: const [
+                _MenuItem(title: '目標設定'),
+                _MenuItem(title: 'よくある質問'),
+                _MenuItem(title: '設定'),
               ],
             ),
           ),
@@ -209,7 +168,7 @@ class _MypageScreenState extends State<MypageScreen> {
             case 0:
               Navigator.pushReplacement(
                 context,
-                MaterialPageRoute(builder: (_) => HomePage()),
+                MaterialPageRoute(builder: (_) => const HomePage()),
               );
               break;
             case 1:
@@ -245,17 +204,11 @@ class _MypageScreenState extends State<MypageScreen> {
   }
 }
 
-// メニューの各項目を作る部品（タップイベント・赤文字表示に対応）
+// メニューの各項目を作る部品
 class _MenuItem extends StatelessWidget {
   final String title;
-  final VoidCallback? onTap;
-  final bool isDestructive;
 
-  const _MenuItem({
-    required this.title,
-    this.onTap,
-    this.isDestructive = false,
-  });
+  const _MenuItem({required this.title});
 
   @override
   Widget build(BuildContext context) {
@@ -264,17 +217,17 @@ class _MenuItem extends StatelessWidget {
         ListTile(
           title: Text(
             title,
-            style: TextStyle(
+            style: const TextStyle(
               fontSize: 16.0,
               fontWeight: FontWeight.w500,
-              color: isDestructive ? Colors.red : Colors.black87,
+              color: Colors.black87,
             ),
           ),
           trailing: const Icon(
             Icons.chevron_right,
             color: Colors.grey,
           ),
-          onTap: onTap,
+          onTap: () {},
         ),
         const Divider(height: 1, thickness: 1, color: Colors.black12),
       ],
