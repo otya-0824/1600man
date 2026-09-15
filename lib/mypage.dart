@@ -4,18 +4,11 @@ import 'gurahu.dart';
 import 'calendar.dart';
 import 'home.dart';
 import 'profile.dart'; // 上記のProfilePageをインポート
-import 'backend/user_service.dart';   // 【編集箇所】Firebaseへのデータ取得・保存処理を行うUserServiceを追加
+import 'models/user_profile.dart';
+import 'services/profile_service.dart'; // 初回登録・編集と共通の読込経路(安定uid)
 
-// 【編集箇所】ここから22行目まで
 class MypageScreen extends StatefulWidget {
-
-  // 【編集箇所】Firebaseから取得するユーザーIDを受け取る
-  final String? userId;
-
-  const MypageScreen({
-    super.key,
-    this.userId,
-  });
+  const MypageScreen({super.key});
 
   @override
   State<MypageScreen> createState() => _MypageScreenState();
@@ -24,27 +17,21 @@ class MypageScreen extends StatefulWidget {
 class _MypageScreenState extends State<MypageScreen> {
   bool _hasCustomImage = false;
 
-  final UserService userService = UserService();  // 【編集箇所】Firebaseのプロフィール情報を扱うUserService
+  final ProfileService _profileService = ProfileService(); // 安定uidのプロフィールを読む
 
-  Map<String, dynamic>? profileData;              // 【編集箇所】Firebaseから取得したプロフィール情報を保存する変数
+  UserProfile? profile; // Firebaseから取得したプロフィール情報
 
-  // 【編集箇所】ここから51行目まで
   @override
   void initState() {
     super.initState();
 
-    // 【編集箇所】画面を開いたときにFirebaseからプロフィール情報を取得
+    // 画面を開いたときに安定uidのプロフィール情報を取得
     loadProfile();
   }
 
-  // 【編集箇所】Firebaseからプロフィール情報を取得する処理
+  // 現在の安定uidのプロフィール情報を取得する処理
   Future<void> loadProfile() async {
-    // userId が渡されていなければ固定ドキュメント(current)を読む。
-    // これによりボトムナビ経由（userId なし）でもプロフィールを取得できる。
-    final id = widget.userId ?? UserService.currentUserId;
-
-    // UserServiceを使ってFirebaseからプロフィールを取得
-    profileData = await userService.getProfile(id);
+    profile = await _profileService.loadProfile();
     if (!mounted) return;
     setState(() {});
   }

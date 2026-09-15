@@ -58,7 +58,7 @@ class _InitialRouterState extends State<InitialRouter> {
       // 登録済みなら ホーム画面 へ
       Navigator.pushReplacement(
         context,
-        MaterialPageRoute(builder: (_) => const HomePage()),
+        MaterialPageRoute(builder: (_) => HomePage()),
       );
     } else {
       // 未登録なら 初回用プロフィール設定画面 へ

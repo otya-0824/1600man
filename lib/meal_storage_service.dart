@@ -6,6 +6,7 @@ import 'models/meal.dart';
 class MealStorageService {
   static const String _storageKeyPrefix = 'daily_meal_';
   static const String _myMenuKey = 'my_menu_list';
+  static const String _profileSavedKey = 'profile_saved';
 
   // 食事区分（記録は日付×区分ごとに保存している）
   static const List<String> mealTypes = ["朝食", "昼食", "夕食", "間食"];
@@ -99,5 +100,18 @@ class MealStorageService {
 
     List<dynamic> decodedList = json.decode(jsonString);
     return decodedList.map((item) => MyMenu.fromMap(item as Map<String, dynamic>)).toList();
+  }
+
+  // --- 初回プロフィール登録フラグ ---
+  // 初回起動時にプロフィールを保存済みかどうかを判定する。
+  // main.dart が起動時の遷移先（ホーム / 初回登録画面）を決めるのに使う。
+  static Future<bool> isProfileSaved() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getBool(_profileSavedKey) ?? false;
+  }
+
+  static Future<void> setProfileSaved(bool saved) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_profileSavedKey, saved);
   }
 }

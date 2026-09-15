@@ -191,7 +191,15 @@ class UserProfile {
   // 目標(減量/維持/増量/筋トレ)。カロリー・PFCの目標値計算で使う。
   final Goal goal;
 
-  // コンストラクタ。すべての項目を必須(required)にしている。
+  // 生年月日("YYYY-M-D")。年齢(age)はここから算出した値だが、
+  // 編集画面で年/月/日を復元できるよう元の生年月日も保持する。任意。
+  final String? birthDate;
+
+  // 目標体重(kg)。表示・目標管理用。カロリー計算では未使用。任意。
+  final double? goalWeightKg;
+
+  // コンストラクタ。計算に必須の項目は required、
+  // birthDate / goalWeightKg は表示・編集復元用のため任意にしている。
   // 値の中身が正しいかどうかまではここではチェックしない
   // (チェックは下のvalidate()を呼んで行う設計にしている)。
   const UserProfile({
@@ -201,6 +209,8 @@ class UserProfile {
     required this.gender,
     required this.activityLevel,
     required this.goal,
+    this.birthDate,
+    this.goalWeightKg,
   });
 
   // ------------------------------------------------------------
@@ -267,6 +277,10 @@ class UserProfile {
       'gender': gender.name,
       'activityLevel': activityLevel.name,
       'goal': goal.name,
+      // 任意項目は、値があるときだけ書き込む（merge保存で既存値を
+      // null で上書きして消さないようにするため）。
+      if (birthDate != null) 'birthDate': birthDate,
+      if (goalWeightKg != null) 'goalWeightKg': goalWeightKg,
     };
   }
 
@@ -295,6 +309,8 @@ class UserProfile {
         (g) => g.name == json['goal'],
         orElse: () => Goal.maintain,
       ),
+      birthDate: json['birthDate'] as String?,
+      goalWeightKg: (json['goalWeightKg'] as num?)?.toDouble(),
     );
   }
 }

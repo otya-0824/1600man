@@ -109,15 +109,28 @@ class _FirstTimeProfilePageState extends State<FirstTimeProfilePage> {
       gender: isMale ? Gender.male : Gender.female,
       activityLevel: ActivityLevel.moderate,
       goal: parseGoalLabel(goal),
+      // 編集画面での復元・表示のため、生年月日と目標体重も保存する
+      birthDate: "$selectedYear-$selectedMonth-$selectedDay",
+      goalWeightKg: double.tryParse(goalWeightController.text),
     );
 
     setState(() => isSaving = true);
 
-    // Firestore等へプロファイルを保存
-    await _profileService.saveProfile(profile);
+    try {
+      // Firestore等へプロファイルを保存（uidは初回のみ生成され、以降は不変）
+      await _profileService.saveProfile(profile);
 
-    // 初回登録完了フラグをローカルに保存
-    await MealStorageService.setProfileSaved(true);
+      // 初回登録完了フラグをローカルに保存
+      await MealStorageService.setProfileSaved(true);
+    } catch (e) {
+      // 保存に失敗してもボタンが固まらないようにし、原因をユーザーに知らせる
+      if (!mounted) return;
+      setState(() => isSaving = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('登録に失敗しました。時間をおいて再度お試しください。\n$e')),
+      );
+      return;
+    }
 
     if (!mounted) return;
     setState(() => isSaving = false);
@@ -126,7 +139,7 @@ class _FirstTimeProfilePageState extends State<FirstTimeProfilePage> {
     Navigator.pushAndRemoveUntil(
       context,
       MaterialPageRoute(
-        builder: (context) => const HomePage(),
+        builder: (context) => HomePage(),
       ),
       (route) => false,
     );

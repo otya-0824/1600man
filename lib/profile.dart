@@ -1,7 +1,9 @@
 // // Firebaseに送る予定のデータは110~119
 import 'package:flutter/material.dart';
 import 'mypage.dart'; // マイページをインポート
-import 'backend/user_service.dart';  // 【編集箇所】Firebaseへのデータ保存処理を行うUserServiceを追加
+import 'models/user_profile.dart';
+import 'data/frontend_label_mapping.dart';
+import 'services/profile_service.dart'; // 初回登録と共通の保存経路(安定uid + 統一スキーマ)
 
 class ProfilePage extends StatefulWidget {
   const ProfilePage({super.key});
@@ -11,7 +13,8 @@ class ProfilePage extends StatefulWidget {
 }
 
 class _ProfilePageState extends State<ProfilePage> {
-  final UserService userService = UserService();  // 【編集箇所】Firebaseへの保存処理を行うUserServiceを使用
+  final ProfileService _profileService = ProfileService();  // 初回登録と同じ保存経路を使う
+  bool isSaving = false;
   // =========================
   // プロフィール情報
   // =========================
@@ -22,7 +25,7 @@ class _ProfilePageState extends State<ProfilePage> {
   String selectedMonth = "1";
   String selectedDay = "1";
 
-  String goal = "ダイエット";
+  String goal = "減量";
 
   int age = 0;
 
@@ -48,26 +51,25 @@ class _ProfilePageState extends State<ProfilePage> {
   }
 
   // =========================
-  // 既存プロフィールの読み込み（固定ドキュメント）
+  // 既存プロフィールの読み込み（安定uidのドキュメント。初回登録と共通）
   // =========================
   Future<void> loadExistingProfile() async {
-    final data = await userService.getProfile(UserService.currentUserId);
-    if (data == null || !mounted) return;
+    final profile = await _profileService.loadProfile();
+    if (profile == null || !mounted) return;
 
-    final birthDate = (data['birthDate'] ?? '') as String;
-    final parts = birthDate.split('-');
+    final parts = (profile.birthDate ?? '').split('-');
 
     setState(() {
-      isMale = (data['gender'] ?? '男性') == '男性';
+      isMale = profile.gender == Gender.male;
       if (parts.length == 3) {
         selectedYear = parts[0];
         selectedMonth = parts[1];
         selectedDay = parts[2];
       }
-      goal = (data['goal'] ?? goal) as String;
-      heightController.text = _numToText(data['height']);
-      weightController.text = _numToText(data['weight']);
-      goalWeightController.text = _numToText(data['goalWeight']);
+      goal = profile.goal.label; // 減量/維持/増量/筋トレ
+      heightController.text = _numToText(profile.heightCm);
+      weightController.text = _numToText(profile.weightKg);
+      goalWeightController.text = _numToText(profile.goalWeightKg);
     });
     calculateAge();
   }
@@ -124,50 +126,48 @@ class _ProfilePageState extends State<ProfilePage> {
   }
 
   // =========================
-  // 登録処理
-  // 将来的にFirebase送信
+  // 登録処理（初回登録と共通の ProfileService 経由で保存）
+  // 安定uidの users/{uid} を更新するため、uidは変わらず食事記録等と結びつく。
   // =========================
-  // 【編集箇所】ここからFirebaseへの保存処理
   Future<void> registerProfile() async {
-  final String gender = isMale ? "男性" : "女性";
+    if (isSaving) return;
 
-  final String birthDate =
-      "$selectedYear-$selectedMonth-$selectedDay";
+    final profile = UserProfile(
+      heightCm: double.tryParse(heightController.text) ?? 0,
+      weightKg: double.tryParse(weightController.text) ?? 0,
+      age: age,
+      gender: isMale ? Gender.male : Gender.female,
+      // この画面では活動量を入力しないため、初回登録と同じ既定値を使う
+      activityLevel: ActivityLevel.moderate,
+      goal: parseGoalLabel(goal),
+      birthDate: "$selectedYear-$selectedMonth-$selectedDay",
+      goalWeightKg: double.tryParse(goalWeightController.text),
+    );
 
-  final double height =
-      double.parse(heightController.text);
+    setState(() => isSaving = true);
 
-  final double weight =
-      double.parse(weightController.text);
+    try {
+      await _profileService.saveProfile(profile);
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => isSaving = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('保存に失敗しました。入力内容を確認してください。\n$e')),
+      );
+      return;
+    }
 
-  final double goalWeight =
-      double.parse(goalWeightController.text);
+    if (!mounted) return;
+    setState(() => isSaving = false);
 
-  // saveProfile()に各入力データを渡して保存する
-  final String userId = await userService.saveProfile(
-    gender: gender,
-    birthDate: birthDate,
-    height: height,
-    weight: weight,
-    goal: goal,
-    goalWeight: goalWeight,
-  );
-
-  print("プロフィールを保存しました");
-  print("ユーザーID: $userId");
-
-  // 登録完了後にホームではなくマイページへ遷移
-  // 登録したユーザーIDをマイページへ渡す
-  if (!mounted) return;
-  Navigator.pushReplacement(
-    context,
-    MaterialPageRoute(
-      builder: (context) => MypageScreen(
-        userId: userId,
+    // 登録完了後にマイページへ遷移（uidは共通なので受け渡し不要）
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(
+        builder: (context) => const MypageScreen(),
       ),
-    ),
-  );
-}
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -395,8 +395,8 @@ class _ProfilePageState extends State<ProfilePage> {
               decoration: customDecoration("目標"),
               items: const [
                 DropdownMenuItem(
-                  value: "ダイエット",
-                  child: Text("ダイエット"),
+                  value: "減量",
+                  child: Text("減量"),
                 ),
                 DropdownMenuItem(
                   value: "維持",
@@ -437,7 +437,7 @@ class _ProfilePageState extends State<ProfilePage> {
               width: double.infinity,
               height: 55,
               child: ElevatedButton(
-                onPressed: registerProfile,
+                onPressed: isSaving ? null : registerProfile,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.green,
                   shape: RoundedRectangleBorder(
@@ -445,14 +445,23 @@ class _ProfilePageState extends State<ProfilePage> {
                         BorderRadius.circular(14),
                   ),
                 ),
-                child: const Text(
-                  "登録",
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
+                child: isSaving
+                    ? const SizedBox(
+                        width: 22,
+                        height: 22,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: Colors.white,
+                        ),
+                      )
+                    : const Text(
+                        "登録",
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
               ),
             ),
           ],
