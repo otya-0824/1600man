@@ -4,6 +4,11 @@ import 'gurahu.dart';
 import 'calendar.dart';
 import 'home.dart';
 import 'profile.dart'; // 上記のProfilePageをインポート
+import 'weight_record.dart';
+import 'faq_page.dart';
+import 'settings_page.dart';
+import 'roudo.dart';
+import 'meal_storage_service.dart';
 import 'models/user_profile.dart';
 import 'services/profile_service.dart'; // 初回登録・編集と共通の読込経路(安定uid)
 
@@ -34,6 +39,39 @@ class _MypageScreenState extends State<MypageScreen> {
     profile = await _profileService.loadProfile();
     if (!mounted) return;
     setState(() {});
+  }
+
+  // ログイン機構が無い（実質シングルユーザー）ため、ログアウトは
+  // 「この端末のプロフィール・記録を消して初回状態に戻す」動作にする。
+  Future<void> _confirmLogout(BuildContext context) async {
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('ログアウトしますか？'),
+        content: const Text('この端末のプロフィールと記録が削除され、'
+            '初回登録からやり直しになります。'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('キャンセル'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            child:
+                const Text('ログアウト', style: TextStyle(color: Colors.red)),
+          ),
+        ],
+      ),
+    );
+
+    if (ok != true) return;
+    await MealStorageService.clearAll();
+    if (!context.mounted) return;
+    Navigator.pushAndRemoveUntil(
+      context,
+      MaterialPageRoute(builder: (_) => const RoudoScreen()),
+      (route) => false,
+    );
   }
 
   void _changeProfileImage() {
@@ -120,7 +158,7 @@ class _MypageScreenState extends State<MypageScreen> {
                 // 【編集箇所】表示をプロフィールに変更
                 const Text(
                   'プロフィール',
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 18.0,
                     fontWeight: FontWeight.bold,
                     color: Colors.white,
@@ -166,10 +204,33 @@ class _MypageScreenState extends State<MypageScreen> {
                     );
                   },
                 ),
-                _MenuItem(title: '体重の記録', onTap: () {}),
-                _MenuItem(title: 'よくある質問', onTap: () {}),
-                _MenuItem(title: '設定', onTap: () {}),
-                _MenuItem(title: 'ログアウト', isLogout: true, onTap: () {}),
+                _MenuItem(
+                  title: '体重の記録',
+                  onTap: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                        builder: (_) => const WeightRecordScreen()),
+                  ),
+                ),
+                _MenuItem(
+                  title: 'よくある質問',
+                  onTap: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const FaqPage()),
+                  ),
+                ),
+                _MenuItem(
+                  title: '設定',
+                  onTap: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const SettingsPage()),
+                  ),
+                ),
+                _MenuItem(
+                  title: 'ログアウト',
+                  isLogout: true,
+                  onTap: () => _confirmLogout(context),
+                ),
               ],
             ),
           ),

@@ -14,9 +14,9 @@ class CalendarScreen extends StatefulWidget {
 }
 
 class _CalendarScreenState extends State<CalendarScreen> {
-  // 2026年8月スタート
-  int _currentYear = 2026;
-  int _currentMonth = 8;
+  // 画面を開いたときは常に「今日の月」を開く。
+  int _currentYear = DateTime.now().year;
+  int _currentMonth = DateTime.now().month;
 
   // 日付ごとの達成状況。キーは "yyyy-MM-dd"（MealStorageService.dateStr と同形式）。
   //   'success' -> 緑（達成） / 'warning' -> 黄（やや不足）
@@ -36,10 +36,10 @@ class _CalendarScreenState extends State<CalendarScreen> {
     final first = DateTime(_currentYear, _currentMonth, 1);
     final last = DateTime(_currentYear, _currentMonth + 1, 0);
 
-    // 目標カロリー。プロフィール未整備で取得できない場合はグラフ画面と同じ 1200 を使う。
-    final target = await _facade.loadTarget();
-    final targetKcal =
-        (target != null && target.targetKcal > 0) ? target.targetKcal : 1200.0;
+    // 目標カロリー。保存済みプロフィールから算出し、未登録や取得失敗時は
+    // 既定プロフィールの目標にフォールバックする(ホームと同じ経路)。
+    final target = await _facade.loadTargetOrDefault();
+    final targetKcal = target.targetKcal;
 
     final summaries = await MealStorageService.getSummariesInRange(first, last);
 

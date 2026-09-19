@@ -25,6 +25,9 @@ class _FirstTimeProfilePageState extends State<FirstTimeProfilePage> {
 
   String goal = "減量";
 
+  // 活動量（TDEE=消費カロリーの計算に使う）。既定は「普通」。
+  String activity = "普通";
+
   int age = 0;
 
   final ProfileService _profileService = ProfileService();
@@ -107,7 +110,7 @@ class _FirstTimeProfilePageState extends State<FirstTimeProfilePage> {
       weightKg: double.tryParse(weightController.text) ?? 0,
       age: age,
       gender: isMale ? Gender.male : Gender.female,
-      activityLevel: ActivityLevel.moderate,
+      activityLevel: parseActivityLevelLabel(activity),
       goal: parseGoalLabel(goal),
       // 編集画面での復元・表示のため、生年月日と目標体重も保存する
       birthDate: "$selectedYear-$selectedMonth-$selectedDay",
@@ -357,6 +360,29 @@ class _FirstTimeProfilePageState extends State<FirstTimeProfilePage> {
               onChanged: (value) {
                 setState(() {
                   goal = value!;
+                });
+              },
+            ),
+            const SizedBox(height: 20),
+
+            // =========================
+            // 活動量（消費カロリーの計算に使う）
+            // =========================
+            DropdownButtonFormField<String>(
+              value: activity,
+              decoration: customDecoration("活動量"),
+              items: const [
+                DropdownMenuItem(
+                    value: "ほとんど運動しない", child: Text("ほとんど運動しない")),
+                DropdownMenuItem(value: "軽い運動", child: Text("軽い運動(週1〜3日)")),
+                DropdownMenuItem(value: "普通", child: Text("普通(週3〜5日)")),
+                DropdownMenuItem(value: "激しい運動", child: Text("激しい運動(週6〜7日)")),
+                DropdownMenuItem(
+                    value: "非常に激しい運動", child: Text("非常に激しい運動・肉体労働")),
+              ],
+              onChanged: (value) {
+                setState(() {
+                  activity = value!;
                 });
               },
             ),

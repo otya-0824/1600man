@@ -176,7 +176,7 @@ class _CaloMimicHomePageState extends State<CaloMimicHomePage> {
         color: Colors.white,
         borderRadius: BorderRadius.circular(10.0),
         boxShadow: [
-          BoxShadow(color: Colors.grey.withOpacity(0.1), blurRadius: 5, offset: const Offset(0, 2)),
+          BoxShadow(color: Colors.grey.withValues(alpha: 0.1), blurRadius: 5, offset: const Offset(0, 2)),
         ],
       ),
       child: TextField(

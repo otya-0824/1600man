@@ -1,6 +1,8 @@
 ﻿import 'dart:async';
 import 'package:flutter/material.dart';
 import 'home.dart';
+import 'first_time_profile.dart';
+import 'meal_storage_service.dart';
 
 class RoudoScreen extends StatefulWidget {
   const RoudoScreen({super.key});
@@ -24,17 +26,22 @@ class _RoudoScreenState extends State<RoudoScreen>
 
     _controller.forward();
 
-    // 3秒後にホーム画面へ
-    Timer(const Duration(seconds: 3), () {
-      if (!mounted) return;
+    // 3秒のスプラッシュ後に、プロフィール登録状態で遷移先を振り分ける。
+    // 未登録なら初回プロフィール設定、登録済みならホームへ。
+    Timer(const Duration(seconds: 3), _goNext);
+  }
 
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(
-          builder: (context) => HomePage(),
-        ),
-      );
-    });
+  Future<void> _goNext() async {
+    final isSaved = await MealStorageService.isProfileSaved();
+    if (!mounted) return;
+
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(
+        builder: (context) =>
+            isSaved ? HomePage() : const FirstTimeProfilePage(),
+      ),
+    );
   }
 
   @override
@@ -85,7 +92,7 @@ class _RoudoScreenState extends State<RoudoScreen>
                   width: double.infinity,
                   height: poolHeight,
                   decoration: BoxDecoration(
-                    color: juiceGreen.withOpacity(0.85),
+                    color: juiceGreen.withValues(alpha: 0.85),
                     borderRadius: const BorderRadius.only(
                       topLeft: Radius.circular(25),
                       topRight: Radius.circular(25),

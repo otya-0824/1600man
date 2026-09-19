@@ -27,6 +27,9 @@ class _ProfilePageState extends State<ProfilePage> {
 
   String goal = "減量";
 
+  // 活動量（TDEE=消費カロリーの計算に使う）。既定は「普通」。
+  String activity = "普通";
+
   int age = 0;
 
   // =========================
@@ -67,11 +70,20 @@ class _ProfilePageState extends State<ProfilePage> {
         selectedDay = parts[2];
       }
       goal = profile.goal.label; // 減量/維持/増量/筋トレ
+      activity = _activityLabel(profile.activityLevel);
       heightController.text = _numToText(profile.heightCm);
       weightController.text = _numToText(profile.weightKg);
       goalWeightController.text = _numToText(profile.goalWeightKg);
     });
     calculateAge();
+  }
+
+  // ActivityLevel(enum) → フロント連携用の日本語ラベル（読み込み時の復元用）。
+  String _activityLabel(ActivityLevel level) {
+    return activityLevelFromFrontendLabel.entries
+        .firstWhere((e) => e.value == level,
+            orElse: () => const MapEntry('普通', ActivityLevel.moderate))
+        .key;
   }
 
   // 数値を入力欄用の文字列に整形（整数なら小数点以下を出さない）
@@ -137,8 +149,7 @@ class _ProfilePageState extends State<ProfilePage> {
       weightKg: double.tryParse(weightController.text) ?? 0,
       age: age,
       gender: isMale ? Gender.male : Gender.female,
-      // この画面では活動量を入力しないため、初回登録と同じ既定値を使う
-      activityLevel: ActivityLevel.moderate,
+      activityLevel: parseActivityLevelLabel(activity),
       goal: parseGoalLabel(goal),
       birthDate: "$selectedYear-$selectedMonth-$selectedDay",
       goalWeightKg: double.tryParse(goalWeightController.text),
@@ -414,6 +425,30 @@ class _ProfilePageState extends State<ProfilePage> {
               onChanged: (value) {
                 setState(() {
                   goal = value!;
+                });
+              },
+            ),
+
+            const SizedBox(height: 20),
+
+            // =========================
+            // 活動量（消費カロリーの計算に使う）
+            // =========================
+            DropdownButtonFormField<String>(
+              value: activity,
+              decoration: customDecoration("活動量"),
+              items: const [
+                DropdownMenuItem(
+                    value: "ほとんど運動しない", child: Text("ほとんど運動しない")),
+                DropdownMenuItem(value: "軽い運動", child: Text("軽い運動(週1〜3日)")),
+                DropdownMenuItem(value: "普通", child: Text("普通(週3〜5日)")),
+                DropdownMenuItem(value: "激しい運動", child: Text("激しい運動(週6〜7日)")),
+                DropdownMenuItem(
+                    value: "非常に激しい運動", child: Text("非常に激しい運動・肉体労働")),
+              ],
+              onChanged: (value) {
+                setState(() {
+                  activity = value!;
                 });
               },
             ),

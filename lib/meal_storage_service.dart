@@ -114,4 +114,39 @@ class MealStorageService {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool(_profileSavedKey, saved);
   }
+
+  // --- 体重の記録 ---
+  // 日付(yyyy-MM-dd)ごとの体重(kg)を1件ずつ保存する。
+  static const String _weightKey = 'weight_records';
+
+  /// 体重記録を日付→kgのMapで返す（キーは "yyyy-MM-dd"）。
+  static Future<Map<String, double>> getWeightRecords() async {
+    final prefs = await SharedPreferences.getInstance();
+    final jsonString = prefs.getString(_weightKey);
+    if (jsonString == null) return {};
+    final decoded = jsonDecode(jsonString) as Map<String, dynamic>;
+    return decoded.map((k, v) => MapEntry(k, (v as num).toDouble()));
+  }
+
+  /// 指定日の体重を保存（同じ日は上書き）。
+  static Future<void> saveWeight(DateTime date, double kg) async {
+    final prefs = await SharedPreferences.getInstance();
+    final records = await getWeightRecords();
+    records[dateStr(date)] = kg;
+    await prefs.setString(_weightKey, jsonEncode(records));
+  }
+
+  /// 記録の中で最も新しい日付の体重を返す（無ければ null）。
+  static Future<double?> getLatestWeight() async {
+    final records = await getWeightRecords();
+    if (records.isEmpty) return null;
+    final sortedKeys = records.keys.toList()..sort();
+    return records[sortedKeys.last];
+  }
+
+  // --- 全データ初期化（ログアウト/設定のデータ初期化で使う） ---
+  static Future<void> clearAll() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.clear();
+  }
 }
