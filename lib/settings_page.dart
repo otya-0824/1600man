@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import 'meal_storage_service.dart';
 import 'roudo.dart';
+import 'services/auth_service.dart';
 
 // =====================================================================
 // 設定画面
@@ -81,6 +82,7 @@ class SettingsPage extends StatelessWidget {
     );
 
     if (ok != true) return;
+    await AuthService().signOut(); // 匿名アカウントからサインアウト（次回は新規uid）
     await MealStorageService.clearAll();
     if (!context.mounted) return;
     // 初回スプラッシュ→初回登録画面へ戻す（スタックをクリア）。

@@ -11,6 +11,7 @@ import 'roudo.dart';
 import 'meal_storage_service.dart';
 import 'models/user_profile.dart';
 import 'services/profile_service.dart'; // 初回登録・編集と共通の読込経路(安定uid)
+import 'services/auth_service.dart';
 
 class MypageScreen extends StatefulWidget {
   const MypageScreen({super.key});
@@ -65,6 +66,7 @@ class _MypageScreenState extends State<MypageScreen> {
     );
 
     if (ok != true) return;
+    await AuthService().signOut(); // 匿名アカウントからサインアウト（次回は新規uid）
     await MealStorageService.clearAll();
     if (!context.mounted) return;
     Navigator.pushAndRemoveUntil(
