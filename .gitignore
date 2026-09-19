@@ -14,6 +14,13 @@ doc/api/
 # dotenv environment variables file
 .env*
 
+# リリース署名鍵（絶対にコミットしない。流出すると第三者がアプリを偽装署名できる）
+key.properties
+**/*.jks
+**/*.keystore
+android/app/upload-keystore.jks
+ios/certs/
+
 # Avoid committing generated Javascript files:
 *.dart.js
 # Produced by the --dump-info flag.

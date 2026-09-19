@@ -36,7 +36,7 @@ class SettingsPage extends StatelessWidget {
           const ListTile(
             leading: Icon(Icons.eco, color: _green),
             title: Text('アプリ名'),
-            trailing: Text('栄養管理アプリ'),
+            trailing: Text('もぐバランス'),
           ),
           const Divider(height: 24),
           _section('データ'),

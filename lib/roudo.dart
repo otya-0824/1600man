@@ -113,7 +113,7 @@ class _RoudoScreenState extends State<RoudoScreen>
                       ),
                       SizedBox(height: 20),
                       Text(
-                        '栄養管理アプリ',
+                        'もぐバランス',
                         style: TextStyle(
                           fontSize: 28,
                           fontWeight: FontWeight.bold,

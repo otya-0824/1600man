@@ -69,6 +69,7 @@ class _WeightRecordScreenState extends State<WeightRecordScreen> {
     }
     await MealStorageService.saveWeight(DateTime.now(), kg);
     _weightController.clear();
+    if (!mounted) return;
     FocusScope.of(context).unfocus();
     await _load();
     if (!mounted) return;

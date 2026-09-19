@@ -117,6 +117,16 @@ class _FirstTimeProfilePageState extends State<FirstTimeProfilePage> {
       goalWeightKg: double.tryParse(goalWeightController.text),
     );
 
+    // 保存前に身長・体重・年齢が現実的な範囲かを検証（範囲外は例外）。
+    try {
+      profile.validate();
+    } catch (_) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('入力値が正しくありません。身長・体重・年齢を確認してください。')),
+      );
+      return;
+    }
+
     setState(() => isSaving = true);
 
     try {

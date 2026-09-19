@@ -13,11 +13,13 @@ import '../data/food_repository.dart';
 import '../models/food_item.dart';
 import '../models/meal.dart';
 import '../models/meal_entry.dart';
+import '../models/nutrient_comparison.dart';
 import '../models/nutrition_target.dart';
 import '../models/user_profile.dart';
 import '../search/food_search_service.dart';
 import 'calorie_target_service.dart';
 import 'meal_calculation_service.dart';
+import 'nutrition_feedback_service.dart';
 import 'profile_service.dart';
 
 class NutritionFacade {
@@ -116,6 +118,50 @@ class NutritionFacade {
     final entry = calc.calculate(foodName: foodName, amountGrams: amountGrams);
     if (entry == null) return null;
     return _toMeal(entry, time ?? DateTime.now());
+  }
+
+  // ------------------------------------------------------------
+  // ⑥ 1日の実測(合計 + 微量栄養素の内訳) と目標を比較する
+  // ------------------------------------------------------------
+  /// その日の合計(DailySummary)と微量栄養素の内訳(micros)を、目標(target)と
+  /// 比較して 27項目の NutrientComparison を返す。
+  /// ホーム/グラフで同じ巨大な引数呼び出しを重複させないための集約点。
+  List<NutrientComparison> compareDaily({
+    required NutritionTarget target,
+    required DailySummary summary,
+    required Map<String, double> micros,
+  }) {
+    double m(String key) => micros[key] ?? 0;
+    return NutritionFeedbackService().compare(
+      target: target,
+      actualKcal: summary.totalCalorie,
+      actualProtein: summary.totalProtein,
+      actualFat: summary.totalFat,
+      actualCarbohydrate: summary.totalCarbo,
+      actualFiber: m('fiber'),
+      actualSalt: m('salt'),
+      actualCholesterol: m('cholesterol'),
+      actualPotassium: m('potassium'),
+      actualCalcium: m('calcium'),
+      actualMagnesium: m('magnesium'),
+      actualPhosphorus: m('phosphorus'),
+      actualIron: m('iron'),
+      actualZinc: m('zinc'),
+      actualCopper: m('copper'),
+      actualVitaminA: m('vitaminA'),
+      actualVitaminD: m('vitaminD'),
+      actualVitaminE: m('vitaminE'),
+      actualVitaminK: m('vitaminK'),
+      actualVitaminB1: m('vitaminB1'),
+      actualVitaminB2: m('vitaminB2'),
+      actualNiacin: m('niacin'),
+      actualVitaminB6: m('vitaminB6'),
+      actualVitaminB12: m('vitaminB12'),
+      actualFolate: m('folate'),
+      actualPantothenicAcid: m('pantothenicAcid'),
+      actualVitaminC: m('vitaminC'),
+      actualBiotin: m('biotin'),
+    );
   }
 
   // panpanの計算結果(MealEntry)を、okabeのFirestoreモデル(Meal)に橋渡しする。

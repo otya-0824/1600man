@@ -7,7 +7,6 @@ import 'models/nutrient_comparison.dart';
 import 'models/user_profile.dart';
 import 'services/profile_service.dart';
 import 'services/nutrition_facade.dart';
-import 'services/nutrition_feedback_service.dart';
 import 'services/nutrient_group_service.dart';
 import 'meal_storage_service.dart';
 import 'meal.dart';
@@ -45,36 +44,8 @@ class HomePage extends StatelessWidget {
     final target = _facade.targetFor(profile); // 現在の目標
     final baseline = _facade.targetFor(_asMaintain(profile)); // 維持基準
 
-    final comparisons = NutritionFeedbackService().compare(
-      target: target,
-      actualKcal: summary.totalCalorie,
-      actualProtein: summary.totalProtein,
-      actualFat: summary.totalFat,
-      actualCarbohydrate: summary.totalCarbo,
-      actualFiber: micros['fiber'] ?? 0,
-      actualSalt: micros['salt'] ?? 0,
-      actualCholesterol: micros['cholesterol'] ?? 0,
-      actualPotassium: micros['potassium'] ?? 0,
-      actualCalcium: micros['calcium'] ?? 0,
-      actualMagnesium: micros['magnesium'] ?? 0,
-      actualPhosphorus: micros['phosphorus'] ?? 0,
-      actualIron: micros['iron'] ?? 0,
-      actualZinc: micros['zinc'] ?? 0,
-      actualCopper: micros['copper'] ?? 0,
-      actualVitaminA: micros['vitaminA'] ?? 0,
-      actualVitaminD: micros['vitaminD'] ?? 0,
-      actualVitaminE: micros['vitaminE'] ?? 0,
-      actualVitaminK: micros['vitaminK'] ?? 0,
-      actualVitaminB1: micros['vitaminB1'] ?? 0,
-      actualVitaminB2: micros['vitaminB2'] ?? 0,
-      actualNiacin: micros['niacin'] ?? 0,
-      actualVitaminB6: micros['vitaminB6'] ?? 0,
-      actualVitaminB12: micros['vitaminB12'] ?? 0,
-      actualFolate: micros['folate'] ?? 0,
-      actualPantothenicAcid: micros['pantothenicAcid'] ?? 0,
-      actualVitaminC: micros['vitaminC'] ?? 0,
-      actualBiotin: micros['biotin'] ?? 0,
-    );
+    final comparisons =
+        _facade.compareDaily(target: target, summary: summary, micros: micros);
 
     double ratioOf(String label) {
       for (final c in comparisons) {
