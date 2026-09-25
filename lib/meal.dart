@@ -64,11 +64,8 @@ class _MealPageState extends State<MealPage> {
     const Color primaryGreen = Color(0xFF66BB6A);
 
     return Scaffold(
-      backgroundColor: Colors.white,
       appBar: AppBar(
-        title: const Text("食事一覧", style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold)),
-        backgroundColor: Colors.white,
-        elevation: 0,
+        title: const Text("食事一覧", style: TextStyle(fontWeight: FontWeight.bold)),
         centerTitle: true,
       ),
       body: ListView(
@@ -140,7 +137,10 @@ class _MealPageState extends State<MealPage> {
                 const Spacer(),
                 Text(
                   "$totalCalories kcal",
-                  style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.black87),
+                  style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: Theme.of(context).colorScheme.onSurface),
                 ),
                 const SizedBox(width: 8),
                 IconButton(

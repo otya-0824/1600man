@@ -112,10 +112,7 @@ class _MyMenuCreatePageState extends State<MyMenuCreatePage> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text("Myメニューの新規作成", style: TextStyle(color: Colors.black)),
-        backgroundColor: Colors.white,
-        elevation: 0,
-        iconTheme: const IconThemeData(color: Colors.black),
+        title: const Text("Myメニューの新規作成"),
       ),
       body: Column(
         children: [

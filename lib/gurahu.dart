@@ -239,18 +239,15 @@ class _GraphScreenState extends State<GraphScreen> {
     double topScaleValue = maxGraphValue;
 
     const Color primaryGreen = Color(0xFF66BB6A);
+    final onSurface = Theme.of(context).colorScheme.onSurface;
 
     return Scaffold(
-      backgroundColor: Colors.white,
       appBar: AppBar(
-        backgroundColor: Colors.white,
-        elevation: 0,
         automaticallyImplyLeading: false,
         centerTitle: true,
         title: const Text(
           '栄養素グラフ',
           style: TextStyle(
-            color: Colors.black87,
             fontWeight: FontWeight.bold,
             fontSize: 16,
           ),
@@ -300,10 +297,10 @@ class _GraphScreenState extends State<GraphScreen> {
                     child: Text(
                       _formatDateRange(),
                       overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 13,
                         fontWeight: FontWeight.bold,
-                        color: Colors.black87,
+                        color: onSurface,
                       ),
                     ),
                   ),
@@ -328,10 +325,10 @@ class _GraphScreenState extends State<GraphScreen> {
                       const SizedBox(height: 2),
                       Text(
                         '${averageCalories.toInt()} ${metric.unit}',
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 15,
                           fontWeight: FontWeight.bold,
-                          color: Colors.black87,
+                          color: onSurface,
                         ),
                       ),
                     ],
@@ -347,10 +344,10 @@ class _GraphScreenState extends State<GraphScreen> {
                       const SizedBox(height: 2),
                       Text(
                         '${targetCalories.toInt()} ${metric.unit}',
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 15,
                           fontWeight: FontWeight.bold,
-                          color: Colors.black87,
+                          color: onSurface,
                         ),
                       ),
                     ],
@@ -364,7 +361,7 @@ class _GraphScreenState extends State<GraphScreen> {
                 height: 250,
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: Colors.white,
+                  color: Theme.of(context).colorScheme.surface,
                   borderRadius: BorderRadius.circular(12),
                   border: Border.all(color: Colors.grey.shade200),
                 ),
@@ -488,7 +485,7 @@ class _GraphScreenState extends State<GraphScreen> {
                                       '${targetDate.day}',
                                       style: TextStyle(
                                         fontSize: 11,
-                                        color: isToday ? primaryGreen : Colors.black87,
+                                        color: isToday ? primaryGreen : onSurface,
                                         fontWeight: isToday ? FontWeight.bold : FontWeight.normal,
                                       ),
                                     ),
@@ -586,7 +583,9 @@ class _GraphScreenState extends State<GraphScreen> {
         child: Container(
           padding: const EdgeInsets.symmetric(vertical: 8),
           decoration: BoxDecoration(
-            color: isSelected ? primaryGreen : Colors.grey.shade100,
+            color: isSelected
+                ? primaryGreen
+                : Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.06),
             borderRadius: BorderRadius.circular(6),
             border: Border.all(
               color: isSelected ? primaryGreen : Colors.grey.shade300,
@@ -596,7 +595,9 @@ class _GraphScreenState extends State<GraphScreen> {
           child: Text(
             text,
             style: TextStyle(
-              color: isSelected ? Colors.white : Colors.black87,
+              color: isSelected
+                  ? Colors.white
+                  : Theme.of(context).colorScheme.onSurface,
               fontWeight: FontWeight.bold,
               fontSize: 13,
             ),

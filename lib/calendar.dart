@@ -110,16 +110,14 @@ class _CalendarScreenState extends State<CalendarScreen> {
   Widget build(BuildContext context) {
     const Color primaryGreen = Color(0xFF66BB6A);
 
+    final onSurface = Theme.of(context).colorScheme.onSurface;
+
     return Scaffold(
-      backgroundColor: Colors.white,
       appBar: AppBar(
-        backgroundColor: Colors.white,
-        elevation: 0,
         centerTitle: true,
         title: const Text(
           'カレンダー',
           style: TextStyle(
-            color: Colors.black87,
             fontWeight: FontWeight.bold,
             fontSize: 18,
           ),
@@ -140,10 +138,10 @@ class _CalendarScreenState extends State<CalendarScreen> {
               ),
               Text(
                 '$_currentYear年$_currentMonth月',
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.bold,
-                  color: Colors.black87,
+                  color: onSurface,
                 ),
               ),
               IconButton(
@@ -171,7 +169,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
                   Container(
                     padding: const EdgeInsets.symmetric(vertical: 8),
                     decoration: BoxDecoration(
-                      color: Colors.grey.shade50,
+                      color: onSurface.withValues(alpha: 0.04),
                       border: Border(
                         bottom: BorderSide(color: Colors.grey.shade300),
                       ),
@@ -329,7 +327,9 @@ class _CalendarScreenState extends State<CalendarScreen> {
                               '$day',
                               style: TextStyle(
                                 fontSize: 14,
-                                color: isToday ? Colors.white : Colors.black87,
+                                color: isToday
+                                    ? Colors.white
+                                    : Theme.of(context).colorScheme.onSurface,
                                 fontWeight: isToday ? FontWeight.bold : FontWeight.w500,
                               ),
                             ),
@@ -370,10 +370,10 @@ class _WeekDayLabel extends StatelessWidget {
   Widget build(BuildContext context) {
     return Text(
       text,
-      style: const TextStyle(
+      style: TextStyle(
         fontSize: 13,
         fontWeight: FontWeight.bold,
-        color: Colors.black54,
+        color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
       ),
     );
   }
@@ -401,9 +401,9 @@ class _LegendItem extends StatelessWidget {
         const SizedBox(width: 6),
         Text(
           label,
-          style: const TextStyle(
+          style: TextStyle(
             fontSize: 13,
-            color: Colors.black87,
+            color: Theme.of(context).colorScheme.onSurface,
             fontWeight: FontWeight.w500,
           ),
         ),

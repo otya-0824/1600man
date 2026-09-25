@@ -109,7 +109,6 @@ class _MypageScreenState extends State<MypageScreen> {
     const Color primaryGreen = Color(0xFF66BB6A);
 
     return Scaffold(
-      backgroundColor: Colors.white,
       body: Column(
         children: [
           Container(
@@ -305,7 +304,9 @@ class _MenuItem extends StatelessWidget {
             style: TextStyle(
               fontSize: 16.0,
               fontWeight: FontWeight.w500,
-              color: isLogout ? Colors.red : Colors.black87,
+              color: isLogout
+                  ? Colors.red
+                  : Theme.of(context).colorScheme.onSurface,
             ),
           ),
           trailing: const Icon(
@@ -314,7 +315,7 @@ class _MenuItem extends StatelessWidget {
           ),
           onTap: onTap,
         ),
-        const Divider(height: 1, thickness: 1, color: Colors.black12),
+        const Divider(height: 1, thickness: 1),
       ],
     );
   }

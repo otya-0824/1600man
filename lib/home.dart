@@ -176,22 +176,12 @@ class HomePage extends StatelessWidget {
     final today = _today;
 
     return Scaffold(
-      backgroundColor: Colors.white,
-
       appBar: AppBar(
-        backgroundColor: Colors.white,
-        elevation: 0,
-        leading: const Icon(
-          Icons.menu,
-          color: Colors.black,
-        ),
+        leading: const Icon(Icons.menu),
         actions: const [
           Padding(
             padding: EdgeInsets.only(right: 16),
-            child: Icon(
-              Icons.notifications_none,
-              color: Colors.black,
-            ),
+            child: Icon(Icons.notifications_none),
           ),
         ],
       ),
@@ -446,6 +436,11 @@ class _NutritionRadarChart extends StatelessWidget {
     const titles = ['タンパク質', '脂質', '炭水化物', 'ビタミン', 'ミネラル'];
 
     const green = Color(0xFF66BB6A);
+    final scheme = Theme.of(context).colorScheme;
+    // グラフの枠線・目盛りはテーマの文字色から濃度違いで生成（ダーク追従）
+    final axisStrong = scheme.onSurface.withValues(alpha: 0.85);
+    final axisMedium = scheme.onSurface.withValues(alpha: 0.55);
+    final axisWeak = scheme.onSurface.withValues(alpha: 0.40);
 
     // 目標(赤)も実績(緑)も無い場合のみプレースホルダ。
     // (通常は赤=目標ラインが常にあるので、記録が無くても目標の形は表示する)
@@ -454,10 +449,10 @@ class _NutritionRadarChart extends StatelessWidget {
         height: 320,
         width: double.infinity,
         alignment: Alignment.center,
-        color: Colors.white,
-        child: const Text(
+        color: scheme.surface,
+        child: Text(
           '記録がありません',
-          style: TextStyle(color: Colors.black38, fontSize: 14),
+          style: TextStyle(color: axisWeak, fontSize: 14),
         ),
       );
     }
@@ -473,7 +468,7 @@ class _NutritionRadarChart extends StatelessWidget {
       height: 320,
       width: double.infinity,
       padding: const EdgeInsets.fromLTRB(8, 28, 8, 24),
-      color: Colors.white,
+      color: scheme.surface,
       child: RadarChart(
         RadarChartData(
           radarShape: RadarShape.polygon,
@@ -509,15 +504,14 @@ class _NutritionRadarChart extends StatelessWidget {
             ),
           ],
           getTitle: (index, angle) => RadarChartTitle(text: titles[index]),
-          titleTextStyle: const TextStyle(fontSize: 12, color: Colors.black87),
+          titleTextStyle: TextStyle(fontSize: 12, color: axisStrong),
           titlePositionPercentageOffset: 0.12,
           radarBackgroundColor: Colors.transparent,
-          radarBorderData: const BorderSide(color: Colors.black87, width: 1.2),
-          gridBorderData: const BorderSide(color: Colors.black54, width: 1),
-          tickBorderData: const BorderSide(color: Colors.black54, width: 1),
+          radarBorderData: BorderSide(color: axisStrong, width: 1.2),
+          gridBorderData: BorderSide(color: axisMedium, width: 1),
+          tickBorderData: BorderSide(color: axisMedium, width: 1),
           tickCount: 5,
-          ticksTextStyle:
-              const TextStyle(fontSize: 9, color: Colors.black45),
+          ticksTextStyle: TextStyle(fontSize: 9, color: axisWeak),
         ),
       ),
     );
@@ -578,10 +572,12 @@ class _NutrientBars extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // バーの下地(トラック)はテーマの文字色から薄く生成してダーク追従
+    final trackColor = Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.08);
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: Theme.of(context).cardColor,
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
@@ -596,14 +592,14 @@ class _NutrientBars extends StatelessWidget {
           for (var i = 0; i < goals.length; i++)
             Padding(
               padding: const EdgeInsets.symmetric(vertical: 7),
-              child: _bar(goals[i], values[i]),
+              child: _bar(goals[i], values[i], trackColor),
             ),
         ],
       ),
     );
   }
 
-  Widget _bar(_AxisGoal g, double percent) {
+  Widget _bar(_AxisGoal g, double percent, Color trackColor) {
     final color = _color(g.status);
     final fill = (percent / 100).clamp(0.0, 1.0);
 
@@ -622,7 +618,7 @@ class _NutrientBars extends StatelessWidget {
             borderRadius: BorderRadius.circular(8),
             child: Stack(
               children: [
-                Container(height: 10, color: const Color(0xFFEDEFF1)),
+                Container(height: 10, color: trackColor),
                 // 満たされていくバー本体。グラデーションで質感を出す。
                 FractionallySizedBox(
                   widthFactor: fill,
@@ -716,7 +712,8 @@ class _CalorieRing extends StatelessWidget {
             painter: _RingPainter(
               progress: progress.clamp(0.0, 1.0),
               color: ringColor,
-              trackColor: const Color(0xFFEDEFF1),
+              trackColor:
+                  Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.08),
               strokeWidth: 16,
             ),
           ),

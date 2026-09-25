@@ -282,18 +282,15 @@ class _MealDetailPageState extends State<MealDetailPage> {
     }
 
     return Scaffold(
-      backgroundColor: Colors.white,
       appBar: AppBar(
-        backgroundColor: Colors.white,
-        elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios, color: Colors.black),
+          icon: const Icon(Icons.arrow_back_ios),
           onPressed: () => Navigator.pop(context),
         ),
         centerTitle: true,
         title: Text(
           "${widget.mealType}の記録",
-          style: const TextStyle(color: Colors.black, fontWeight: FontWeight.bold),
+          style: const TextStyle(fontWeight: FontWeight.bold),
         ),
       ),
       body: Column(
@@ -311,7 +308,8 @@ class _MealDetailPageState extends State<MealDetailPage> {
                 hintText: "料理・食品を検索",
                 prefixIcon: const Icon(Icons.search),
                 filled: true,
-                fillColor: Colors.grey.shade100,
+                fillColor:
+                    Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.06),
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
                   borderSide: BorderSide.none,
@@ -396,8 +394,10 @@ class _MealDetailPageState extends State<MealDetailPage> {
                       final food = selectedFoods[index];
                       return ListTile(
                         leading: CircleAvatar(
-                          backgroundColor: Colors.grey.shade200,
-                          child: Icon(food["icon"] ?? Icons.restaurant, color: Colors.black54),
+                          backgroundColor:
+                              Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.1),
+                          child: Icon(food["icon"] ?? Icons.restaurant,
+                              color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7)),
                         ),
                         title: Text(food["name"], style: const TextStyle(fontWeight: FontWeight.bold)),
                         subtitle: Text(
@@ -415,7 +415,7 @@ class _MealDetailPageState extends State<MealDetailPage> {
           Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: Theme.of(context).colorScheme.surface,
               boxShadow: [
                 BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 10),
               ],
@@ -682,13 +682,19 @@ class _MealDetailPageState extends State<MealDetailPage> {
         });
       },
       style: ElevatedButton.styleFrom(
-        backgroundColor: isSelected ? Colors.green : Colors.grey.shade200,
+        backgroundColor: isSelected
+            ? Colors.green
+            : Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.1),
         elevation: 0,
         padding: const EdgeInsets.symmetric(horizontal: 12),
       ),
       child: Text(
         label,
-        style: TextStyle(color: isSelected ? Colors.white : Colors.black, fontSize: 13),
+        style: TextStyle(
+            color: isSelected
+                ? Colors.white
+                : Theme.of(context).colorScheme.onSurface,
+            fontSize: 13),
       ),
     );
   }

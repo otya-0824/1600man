@@ -107,14 +107,11 @@ class _WeightRecordScreenState extends State<WeightRecordScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF8F8F8),
       appBar: AppBar(
-        backgroundColor: Colors.white,
-        elevation: 0,
         centerTitle: true,
         title: const Text(
           '体重の記録',
-          style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold),
+          style: TextStyle(fontWeight: FontWeight.bold),
         ),
       ),
       body: _loading
@@ -184,7 +181,7 @@ class _WeightRecordScreenState extends State<WeightRecordScreen> {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: Theme.of(context).cardColor,
         borderRadius: BorderRadius.circular(16),
       ),
       child: Row(
@@ -197,7 +194,7 @@ class _WeightRecordScreenState extends State<WeightRecordScreen> {
               decoration: InputDecoration(
                 labelText: '今日の体重(kg)',
                 filled: true,
-                fillColor: Colors.grey.shade100,
+                fillColor: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.06),
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
                   borderSide: BorderSide.none,
@@ -228,18 +225,19 @@ class _WeightRecordScreenState extends State<WeightRecordScreen> {
 
   Widget _history() {
     if (_records.isEmpty) {
-      return const Padding(
-        padding: EdgeInsets.symmetric(vertical: 24),
+      return Padding(
+        padding: const EdgeInsets.symmetric(vertical: 24),
         child: Center(
           child: Text('まだ記録がありません',
-              style: TextStyle(color: Colors.black38)),
+              style: TextStyle(
+                  color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.4))),
         ),
       );
     }
     final keys = _records.keys.toList()..sort((a, b) => b.compareTo(a));
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: Theme.of(context).cardColor,
         borderRadius: BorderRadius.circular(16),
       ),
       child: Column(

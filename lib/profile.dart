@@ -125,7 +125,7 @@ class _ProfilePageState extends State<ProfilePage> {
     return InputDecoration(
       labelText: label,
       filled: true,
-      fillColor: Colors.grey.shade100,
+      fillColor: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.06),
       border: OutlineInputBorder(
         borderRadius: BorderRadius.circular(12),
         borderSide: BorderSide.none,
@@ -192,17 +192,14 @@ class _ProfilePageState extends State<ProfilePage> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: const Color(0xFFF8F8F8),
+    final onSurface = Theme.of(context).colorScheme.onSurface;
 
+    return Scaffold(
       appBar: AppBar(
-        backgroundColor: Colors.white,
-        elevation: 0,
         centerTitle: true,
         title: const Text(
           "プロフィール登録",
           style: TextStyle(
-            color: Colors.black,
             fontWeight: FontWeight.bold,
           ),
         ),
@@ -237,15 +234,14 @@ class _ProfilePageState extends State<ProfilePage> {
                       });
                     },
                     style: ElevatedButton.styleFrom(
-                      backgroundColor:
-                          isMale ? Colors.green : Colors.white,
+                      backgroundColor: isMale
+                          ? Colors.green
+                          : onSurface.withValues(alpha: 0.06),
                     ),
                     child: Text(
                       "男性",
                       style: TextStyle(
-                        color: isMale
-                            ? Colors.white
-                            : Colors.black,
+                        color: isMale ? Colors.white : onSurface,
                       ),
                     ),
                   ),
@@ -261,15 +257,14 @@ class _ProfilePageState extends State<ProfilePage> {
                       });
                     },
                     style: ElevatedButton.styleFrom(
-                      backgroundColor:
-                          !isMale ? Colors.green : Colors.white,
+                      backgroundColor: !isMale
+                          ? Colors.green
+                          : onSurface.withValues(alpha: 0.06),
                     ),
                     child: Text(
                       "女性",
                       style: TextStyle(
-                        color: !isMale
-                            ? Colors.white
-                            : Colors.black,
+                        color: !isMale ? Colors.white : onSurface,
                       ),
                     ),
                   ),

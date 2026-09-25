@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import 'main.dart';
 import 'meal_storage_service.dart';
 import 'roudo.dart';
 import 'services/auth_service.dart';
@@ -8,25 +9,42 @@ import 'services/auth_service.dart';
 // 設定画面
 // アプリ情報の表示と、データ初期化（全記録・プロフィールの削除）を行う。
 // =====================================================================
-class SettingsPage extends StatelessWidget {
+class SettingsPage extends StatefulWidget {
   const SettingsPage({super.key});
 
+  @override
+  State<SettingsPage> createState() => _SettingsPageState();
+}
+
+class _SettingsPageState extends State<SettingsPage> {
   static const Color _green = Color(0xFF66BB6A);
 
   @override
   Widget build(BuildContext context) {
+    // アプリ全体のダークモード状態を取得（設定の初期値・スイッチ表示に使用）
+    final isDarkMode = MyApp.of(context)?.isDarkMode ?? false;
     return Scaffold(
-      backgroundColor: const Color(0xFFF8F8F8),
       appBar: AppBar(
-        backgroundColor: Colors.white,
-        elevation: 0,
         centerTitle: true,
         title: const Text('設定',
-            style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold)),
+            style: TextStyle(fontWeight: FontWeight.bold)),
       ),
       body: ListView(
         children: [
           const SizedBox(height: 12),
+          _section('表示'),
+          SwitchListTile(
+            secondary: const Icon(Icons.dark_mode_outlined, color: _green),
+            title: const Text('ダークモード'),
+            value: isDarkMode,
+            activeThumbColor: _green,
+            onChanged: (value) {
+              // アプリ全体のテーマを切り替え、設定を永続化する
+              MyApp.of(context)?.toggleTheme(value);
+              setState(() {});
+            },
+          ),
+          const Divider(height: 24),
           _section('アプリ情報'),
           const ListTile(
             leading: Icon(Icons.info_outline, color: _green),

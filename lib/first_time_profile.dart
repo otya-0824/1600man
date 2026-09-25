@@ -86,7 +86,7 @@ class _FirstTimeProfilePageState extends State<FirstTimeProfilePage> {
     return InputDecoration(
       labelText: label,
       filled: true,
-      fillColor: Colors.grey.shade100,
+      fillColor: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.06),
       border: OutlineInputBorder(
         borderRadius: BorderRadius.circular(12),
         borderSide: BorderSide.none,
@@ -160,17 +160,15 @@ class _FirstTimeProfilePageState extends State<FirstTimeProfilePage> {
 
   @override
   Widget build(BuildContext context) {
+    final onSurface = Theme.of(context).colorScheme.onSurface;
+
     return Scaffold(
-      backgroundColor: const Color(0xFFF8F8F8),
       appBar: AppBar(
-        backgroundColor: Colors.white,
-        elevation: 0,
         centerTitle: true,
         automaticallyImplyLeading: false, // 初回登録のため戻るボタンを表示しない
         title: const Text(
           "初回プロフィール登録",
           style: TextStyle(
-            color: Colors.black,
             fontWeight: FontWeight.bold,
           ),
         ),
@@ -200,12 +198,14 @@ class _FirstTimeProfilePageState extends State<FirstTimeProfilePage> {
                       });
                     },
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: isMale ? Colors.green : Colors.white,
+                      backgroundColor: isMale
+                          ? Colors.green
+                          : onSurface.withValues(alpha: 0.06),
                     ),
                     child: Text(
                       "男性",
                       style: TextStyle(
-                        color: isMale ? Colors.white : Colors.black,
+                        color: isMale ? Colors.white : onSurface,
                       ),
                     ),
                   ),
@@ -219,12 +219,14 @@ class _FirstTimeProfilePageState extends State<FirstTimeProfilePage> {
                       });
                     },
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: !isMale ? Colors.green : Colors.white,
+                      backgroundColor: !isMale
+                          ? Colors.green
+                          : onSurface.withValues(alpha: 0.06),
                     ),
                     child: Text(
                       "女性",
                       style: TextStyle(
-                        color: !isMale ? Colors.white : Colors.black,
+                        color: !isMale ? Colors.white : onSurface,
                       ),
                     ),
                   ),
