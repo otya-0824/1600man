@@ -6,7 +6,12 @@ import 'calendar.dart';
 import 'mypage.dart';
 
 class HomePage extends StatefulWidget {
-  const HomePage({super.key});
+  final bool isDarkMode; // ← ダークモードの状態を受け取る変数
+
+  const HomePage({
+    super.key,
+    this.isDarkMode = false, // デフォルトはライトモード
+  });
 
   @override
   State<HomePage> createState() => _HomePageState();
@@ -68,16 +73,25 @@ class _HomePageState extends State<HomePage> {
 
   @override
   Widget build(BuildContext context) {
+    const Color primaryGreen = Color(0xFF66BB6A);
+    // 受け取った widget.isDarkMode の状態を使用
+    final bool isDarkMode = widget.isDarkMode;
+
+    // モードに応じた背景色・文字色・カード色を定義
+    final Color backgroundColor = isDarkMode ? const Color(0xFF121212) : Colors.white;
+    final Color textColor = isDarkMode ? Colors.white70 : Colors.black87;
+    final Color cardColor = isDarkMode ? const Color(0xFF1E1E1E) : Colors.grey.shade100;
+
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: backgroundColor,
       appBar: AppBar(
-        backgroundColor: Colors.white,
+        backgroundColor: backgroundColor,
         elevation: 0,
         centerTitle: true,
-        title: const Text(
+        title: Text(
           "ホーム",
           style: TextStyle(
-            color: Colors.black,
+            color: textColor,
             fontWeight: FontWeight.bold,
           ),
         ),
@@ -89,8 +103,8 @@ class _HomePageState extends State<HomePage> {
             // 日付表示
             Text(
               "${currentDate.year}/${currentDate.month}/${currentDate.day}",
-              style: const TextStyle(
-                color: Colors.grey,
+              style: TextStyle(
+                color: isDarkMode ? Colors.white54 : Colors.grey,
               ),
             ),
             const SizedBox(height: 20),
@@ -102,7 +116,7 @@ class _HomePageState extends State<HomePage> {
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
                 border: Border.all(
-                  color: Colors.green,
+                  color: primaryGreen,
                   width: 10,
                 ),
               ),
@@ -110,21 +124,25 @@ class _HomePageState extends State<HomePage> {
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    const Text(
+                    Text(
                       "摂取カロリー",
                       style: TextStyle(
-                        color: Colors.grey,
+                        color: isDarkMode ? Colors.white54 : Colors.grey,
                       ),
                     ),
                     const SizedBox(height: 8),
                     Text(
                       "$consumedCalorie", // 変数を反映
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 36,
                         fontWeight: FontWeight.bold,
+                        color: textColor,
                       ),
                     ),
-                    Text("/ $targetCalorie kcal") // 変数を反映
+                    Text(
+                      "/ $targetCalorie kcal",
+                      style: TextStyle(color: textColor),
+                    ) // 変数を反映
                   ],
                 ),
               ),
@@ -135,25 +153,26 @@ class _HomePageState extends State<HomePage> {
             Row(
               children: [
                 Expanded(
-                  child: _pfcCard("P", "${consumedProtein.toStringAsFixed(1)} g", Colors.green),
+                  child: _pfcCard("P", "${consumedProtein.toStringAsFixed(1)} g", const Color(0xFF66BB6A), cardColor, textColor),
                 ),
                 Expanded(
-                  child: _pfcCard("F", "${consumedFat.toStringAsFixed(1)} g", Colors.orange),
+                  child: _pfcCard("F", "${consumedFat.toStringAsFixed(1)} g", Colors.orange, cardColor, textColor),
                 ),
                 Expanded(
-                  child: _pfcCard("C", "${consumedCarbo.toStringAsFixed(1)} g", Colors.red),
+                  child: _pfcCard("C", "${consumedCarbo.toStringAsFixed(1)} g", Colors.redAccent, cardColor, textColor),
                 ),
               ],
             ),
             const SizedBox(height: 30),
 
-            const Align(
+            Align(
               alignment: Alignment.centerLeft,
               child: Text(
                 "栄養バランス",
                 style: TextStyle(
                   fontSize: 20,
                   fontWeight: FontWeight.bold,
+                  color: textColor,
                 ),
               ),
             ),
@@ -163,7 +182,7 @@ class _HomePageState extends State<HomePage> {
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: Colors.grey.shade100,
+                color: cardColor,
                 borderRadius: BorderRadius.circular(16),
               ),
               child: Center(
@@ -175,13 +194,14 @@ class _HomePageState extends State<HomePage> {
                       radarShape: RadarShape.polygon,
                       tickCount: 5,
                       titlePositionPercentageOffset: 0.3,
-                      ticksTextStyle: const TextStyle(
-                        color: Colors.grey,
+                      ticksTextStyle: TextStyle(
+                        color: isDarkMode ? Colors.white54 : Colors.grey,
                         fontSize: 10,
                       ),
-                      titleTextStyle: const TextStyle(
+                      titleTextStyle: TextStyle(
                         fontSize: 12,
                         fontWeight: FontWeight.bold,
+                        color: textColor,
                       ),
                       getTitle: (index, angle) {
                         switch (index) {
@@ -202,9 +222,9 @@ class _HomePageState extends State<HomePage> {
                       dataSets: [
                         // 目標基準線 (100%固定の外枠)
                         RadarDataSet(
-                          borderColor: Colors.red,
+                          borderColor: Colors.redAccent,
                           borderWidth: 3,
-                          fillColor: Colors.grey.withOpacity(0.15),
+                          fillColor: (isDarkMode ? Colors.white : Colors.grey).withOpacity(0.15),
                           entryRadius: 0,
                           dataEntries: const [
                             RadarEntry(value: 100),
@@ -216,9 +236,9 @@ class _HomePageState extends State<HomePage> {
                         ),
                         // 実際の摂取量 (変数から計算した割合データ)
                         RadarDataSet(
-                          borderColor: Colors.green,
+                          borderColor: primaryGreen,
                           borderWidth: 3,
-                          fillColor: Colors.green.withOpacity(0.4),
+                          fillColor: primaryGreen.withOpacity(0.4),
                           entryRadius: 3,
                           dataEntries: [
                             RadarEntry(
@@ -247,8 +267,8 @@ class _HomePageState extends State<HomePage> {
             const SizedBox(height: 20),
             Text(
               "ユーザーID: $userId",
-              style: const TextStyle(
-                color: Colors.grey,
+              style: TextStyle(
+                color: isDarkMode ? Colors.white54 : Colors.grey,
               ),
             ),
           ],
@@ -257,33 +277,34 @@ class _HomePageState extends State<HomePage> {
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: 0,
         type: BottomNavigationBarType.fixed,
-        selectedItemColor: const Color(0xFF66BB6A),
+        selectedItemColor: primaryGreen,
         unselectedItemColor: Colors.grey,
+        backgroundColor: backgroundColor,
         onTap: (index) {
           if (index == 0) return;
           switch (index) {
             case 1:
               Navigator.pushReplacement(
                 context,
-                MaterialPageRoute(builder: (_) => const MealPage()),
+                MaterialPageRoute(builder: (_) => MealPage(isDarkMode: widget.isDarkMode)),
               );
               break;
             case 2:
               Navigator.pushReplacement(
                 context,
-                MaterialPageRoute(builder: (_) => const GraphScreen()),
+                MaterialPageRoute(builder: (_) => GraphScreen(isDarkMode: widget.isDarkMode)),
               );
               break;
             case 3:
               Navigator.pushReplacement(
                 context,
-                MaterialPageRoute(builder: (_) => const CalendarScreen()),
+                MaterialPageRoute(builder: (_) => CalendarScreen(isDarkMode: widget.isDarkMode)),
               );
               break;
             case 4:
               Navigator.pushReplacement(
                 context,
-                MaterialPageRoute(builder: (_) => const MypageScreen()),
+                MaterialPageRoute(builder: (_) => MypageScreen(isDarkMode: widget.isDarkMode)),
               );
               break;
           }
@@ -300,10 +321,11 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
-  static Widget _pfcCard(String title, String value, Color color) {
+  // PFCカードを生成するヘルパー関数
+  static Widget _pfcCard(String title, String value, Color color, Color cardColor, Color textColor) {
     return Card(
       elevation: 0,
-      color: Colors.grey.shade100,
+      color: cardColor,
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
@@ -319,7 +341,10 @@ class _HomePageState extends State<HomePage> {
             const SizedBox(height: 8),
             Text(
               value,
-              style: const TextStyle(fontWeight: FontWeight.bold),
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                color: textColor,
+              ),
             ),
           ],
         ),

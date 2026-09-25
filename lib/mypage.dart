@@ -1,22 +1,36 @@
 import 'package:flutter/material.dart';
-import 'profile.dart'; // プロフィールページをインポート
+
+import 'profile.dart';
 import 'home.dart';
 import 'meal.dart';
 import 'gurahu.dart';
 import 'calendar.dart';
+import 'goal_setting.dart';
+import 'faq_screen.dart';
+import 'm_setting.dart';
 
 class MypageScreen extends StatefulWidget {
-  const MypageScreen({super.key});
+  final bool isDarkMode; // 外部からダークモード状態を受け取る
+
+  const MypageScreen({
+    super.key,
+    this.isDarkMode = false,
+  });
 
   @override
   State<MypageScreen> createState() => _MypageScreenState();
 }
 
 class _MypageScreenState extends State<MypageScreen> {
-  // アイコンを変更できるように状態（State）として保持
   bool _hasCustomImage = false;
+  late bool _isDarkMode;
 
-  // アイコンがタップされたときの処理
+  @override
+  void initState() {
+    super.initState();
+    _isDarkMode = widget.isDarkMode; // 受け取った状態で初期化
+  }
+
   void _changeProfileImage() {
     showDialog(
       context: context,
@@ -49,11 +63,14 @@ class _MypageScreenState extends State<MypageScreen> {
   Widget build(BuildContext context) {
     const Color primaryGreen = Color(0xFF66BB6A);
 
+    // ダークモード時の背景色やテキスト色を設定
+    final backgroundColor = _isDarkMode ? const Color(0xFF121212) : Colors.white;
+    final textColor = _isDarkMode ? Colors.white : Colors.black87;
+
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: backgroundColor,
       body: Column(
         children: [
-          // 1. 上部のプロフィールエリア（緑色の背景）
           Container(
             width: double.infinity,
             padding: const EdgeInsets.only(top: 60.0, bottom: 30.0),
@@ -61,7 +78,6 @@ class _MypageScreenState extends State<MypageScreen> {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                // プロフィールアイコン
                 GestureDetector(
                   onTap: _changeProfileImage,
                   child: Stack(
@@ -99,7 +115,6 @@ class _MypageScreenState extends State<MypageScreen> {
                   ),
                 ),
                 const SizedBox(height: 12),
-                // ユーザー名
                 const Text(
                   'カロミル 太郎',
                   style: TextStyle(
@@ -109,14 +124,13 @@ class _MypageScreenState extends State<MypageScreen> {
                   ),
                 ),
                 const SizedBox(height: 12),
-                
-                // プロフィール編集ボタン（ProfilePageへ遷移）
                 OutlinedButton(
                   onPressed: () {
+                    // ★ 修正：現在のダークモードの状態（_isDarkMode）をプロフィール画面に渡す
                     Navigator.pushAndRemoveUntil(
                       context,
                       MaterialPageRoute(
-                        builder: (context) => const ProfilePage(),
+                        builder: (context) => ProfilePage(isDarkMode: _isDarkMode),
                       ),
                       (route) => false,
                     );
@@ -142,51 +156,90 @@ class _MypageScreenState extends State<MypageScreen> {
               ],
             ),
           ),
-
-          // 2. メニューリスト
           Expanded(
             child: ListView(
-              children: const [
-                _MenuItem(title: '目標設定'),
-                _MenuItem(title: 'よくある質問'),
-                _MenuItem(title: '設定'),
+              children: [
+                _MenuItem(
+                  title: '目標設定',
+                  textColor: textColor,
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => GoalSettingScreen(
+                          isDarkMode: _isDarkMode,
+                        ),
+                      ),
+                    );
+                  },
+                ),
+                _MenuItem(
+                  title: 'よくある質問',
+                  textColor: textColor,
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const FAQScreen(),
+                      ),
+                    );
+                  },
+                ),
+                _MenuItem(
+                  title: '設定',
+                  textColor: textColor,
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => MSettingScreen(
+                          isDarkMode: _isDarkMode,
+                          onThemeChanged: (value) {
+                            setState(() {
+                              _isDarkMode = value;
+                            });
+                          },
+                        ),
+                      ),
+                    );
+                  },
+                ),
               ],
             ),
           ),
         ],
       ),
-
-      // ボトムナビゲーションバー
       bottomNavigationBar: BottomNavigationBar(
-        currentIndex: 4, // マイページをアクティブ表示
+        currentIndex: 4,
         type: BottomNavigationBarType.fixed,
         selectedItemColor: primaryGreen,
         unselectedItemColor: Colors.grey,
+        backgroundColor: backgroundColor,
         onTap: (index) {
           if (index == 4) return;
           switch (index) {
             case 0:
               Navigator.pushReplacement(
                 context,
-                MaterialPageRoute(builder: (_) => const HomePage()),
+                MaterialPageRoute(builder: (_) => HomePage(isDarkMode: _isDarkMode)),
               );
               break;
             case 1:
               Navigator.pushReplacement(
                 context,
-                MaterialPageRoute(builder: (_) => const MealPage()),
+                MaterialPageRoute(builder: (_) => MealPage(isDarkMode: _isDarkMode)),
               );
               break;
             case 2:
               Navigator.pushReplacement(
                 context,
-                MaterialPageRoute(builder: (_) => const GraphScreen()),
+                MaterialPageRoute(builder: (_) => GraphScreen(isDarkMode: _isDarkMode)),
               );
               break;
             case 3:
               Navigator.pushReplacement(
                 context,
-                MaterialPageRoute(builder: (_) => const CalendarScreen()),
+                MaterialPageRoute(builder: (_) => CalendarScreen(isDarkMode: _isDarkMode)),
               );
               break;
           }
@@ -204,32 +257,49 @@ class _MypageScreenState extends State<MypageScreen> {
   }
 }
 
-// メニューの各項目を作る部品
 class _MenuItem extends StatelessWidget {
   final String title;
+  final Color textColor;
+  final VoidCallback onTap;
 
-  const _MenuItem({required this.title});
+  const _MenuItem({
+    required this.title,
+    required this.textColor,
+    required this.onTap,
+  });
 
   @override
   Widget build(BuildContext context) {
     return Column(
       children: [
-        ListTile(
-          title: Text(
-            title,
-            style: const TextStyle(
-              fontSize: 16.0,
-              fontWeight: FontWeight.w500,
-              color: Colors.black87,
+        Material(
+          color: Colors.transparent,
+          child: InkWell(
+            onTap: onTap,
+            child: Padding(
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 16.0, vertical: 16.0),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    title,
+                    style: TextStyle(
+                      fontSize: 16.0,
+                      fontWeight: FontWeight.w500,
+                      color: textColor,
+                    ),
+                  ),
+                  const Icon(
+                    Icons.chevron_right,
+                    color: Colors.grey,
+                  ),
+                ],
+              ),
             ),
           ),
-          trailing: const Icon(
-            Icons.chevron_right,
-            color: Colors.grey,
-          ),
-          onTap: () {},
         ),
-        const Divider(height: 1, thickness: 1, color: Colors.black12),
+        const Divider(height: 1, thickness: 1),
       ],
     );
   }

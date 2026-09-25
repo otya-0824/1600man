@@ -6,7 +6,12 @@ import 'calendar.dart';
 import 'mypage.dart';
 
 class MealPage extends StatefulWidget {
-  const MealPage({super.key});
+  final bool isDarkMode; // ← ダークモードの状態を受け取る変数
+
+  const MealPage({
+    super.key,
+    this.isDarkMode = false, // デフォルトはライトモード
+  });
 
   @override
   State<MealPage> createState() => _MealPageState();
@@ -70,8 +75,6 @@ class _MealPageState extends State<MealPage> {
   @override
   Widget build(BuildContext context) {
     // データ取得ロジック
-    // 1. 今日の場合: 保存データがあればそれを使い、無ければデフォルトの入力枠を表示
-    // 2. 今日以外の場合: 保存データがあれば表示し、無ければ null（データなし表示）
     List<Map<String, String>>? meals;
     if (isToday) {
       meals = mealData[dateKey] ?? defaultMealSlots;
@@ -81,19 +84,25 @@ class _MealPageState extends State<MealPage> {
 
     const Color primaryGreen = Color(0xFF66BB6A);
 
+    // ダークモードに応じた色の定義
+    final backgroundColor = widget.isDarkMode ? const Color(0xFF121212) : Colors.white;
+    final textColor = widget.isDarkMode ? Colors.white : Colors.black;
+    final subTextColor = widget.isDarkMode ? Colors.white70 : Colors.grey;
+
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: backgroundColor,
       appBar: AppBar(
-        backgroundColor: Colors.white,
+        backgroundColor: backgroundColor,
         elevation: 0,
         centerTitle: true,
-        title: const Text(
+        title: Text(
           "食事の記録",
           style: TextStyle(
-            color: Colors.black,
+            color: textColor,
             fontWeight: FontWeight.bold,
           ),
         ),
+        iconTheme: IconThemeData(color: textColor),
       ),
       body: Column(
         children: [
@@ -107,18 +116,19 @@ class _MealPageState extends State<MealPage> {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 IconButton(
-                  icon: const Icon(Icons.chevron_left),
+                  icon: Icon(Icons.chevron_left, color: textColor),
                   onPressed: previousDay,
                 ),
                 Text(
                   formattedDate,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontWeight: FontWeight.bold,
                     fontSize: 16,
+                    color: textColor,
                   ),
                 ),
                 IconButton(
-                  icon: const Icon(Icons.chevron_right),
+                  icon: Icon(Icons.chevron_right, color: textColor),
                   onPressed: nextDay,
                 ),
               ],
@@ -128,11 +138,11 @@ class _MealPageState extends State<MealPage> {
           // 食事リスト表示エリア
           Expanded(
             child: meals == null
-                ? const Center(
+                ? Center(
                     child: Text(
                       "データがありません",
                       style: TextStyle(
-                        color: Colors.grey,
+                        color: subTextColor,
                         fontSize: 18,
                       ),
                     ),
@@ -156,6 +166,7 @@ class _MealPageState extends State<MealPage> {
         type: BottomNavigationBarType.fixed,
         selectedItemColor: primaryGreen,
         unselectedItemColor: Colors.grey,
+        backgroundColor: backgroundColor,
         onTap: (index) {
           if (index == 1) return;
 
@@ -163,25 +174,31 @@ class _MealPageState extends State<MealPage> {
             case 0:
               Navigator.pushReplacement(
                 context,
-                MaterialPageRoute(builder: (_) => const HomePage()),
+                MaterialPageRoute(builder: (_) => HomePage(isDarkMode: widget.isDarkMode)), // ← 修正：isDarkModeを渡す
+              );
+              break;
+            case 1:
+              Navigator.pushReplacement(
+                context,
+                MaterialPageRoute(builder: (_) => MealPage(isDarkMode: widget.isDarkMode)),
               );
               break;
             case 2:
               Navigator.pushReplacement(
                 context,
-                MaterialPageRoute(builder: (_) => const GraphScreen()),
+                MaterialPageRoute(builder: (_) => GraphScreen(isDarkMode: widget.isDarkMode)), // ← 修正：isDarkModeを渡す
               );
               break;
             case 3:
               Navigator.pushReplacement(
                 context,
-                MaterialPageRoute(builder: (_) => const CalendarScreen()),
+                MaterialPageRoute(builder: (_) => CalendarScreen(isDarkMode: widget.isDarkMode)), // ← 修正：isDarkModeを渡す
               );
               break;
             case 4:
               Navigator.pushReplacement(
                 context,
-                MaterialPageRoute(builder: (_) => const MypageScreen()),
+                MaterialPageRoute(builder: (_) => MypageScreen(isDarkMode: widget.isDarkMode)), // ← 修正：isDarkModeを渡す
               );
               break;
           }
@@ -204,6 +221,11 @@ class _MealPageState extends State<MealPage> {
     required String calorie,
     required bool canEdit,
   }) {
+    final cardColor = widget.isDarkMode ? const Color(0xFF1E1E1E) : Colors.white;
+    final textColor = widget.isDarkMode ? Colors.white : Colors.black;
+    final subTextColor = widget.isDarkMode ? Colors.white70 : Colors.grey;
+    final iconBgColor = widget.isDarkMode ? Colors.grey.shade800 : Colors.grey.shade200;
+
     return Container(
       margin: const EdgeInsets.symmetric(
         horizontal: 16,
@@ -211,11 +233,11 @@ class _MealPageState extends State<MealPage> {
       ),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: cardColor,
         borderRadius: BorderRadius.circular(12),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: widget.isDarkMode ? Colors.black.withValues(alpha: 0.3) : Colors.black.withValues(alpha: 0.05),
             blurRadius: 5,
           ),
         ],
@@ -226,13 +248,13 @@ class _MealPageState extends State<MealPage> {
             width: 90,
             height: 90,
             decoration: BoxDecoration(
-              color: Colors.grey.shade200,
+              color: iconBgColor,
               borderRadius: BorderRadius.circular(10),
             ),
-            child: const Icon(
+            child: Icon(
               Icons.restaurant,
               size: 40,
-              color: Colors.grey,
+              color: subTextColor,
             ),
           ),
           const SizedBox(width: 16),
@@ -242,30 +264,34 @@ class _MealPageState extends State<MealPage> {
               children: [
                 Text(
                   title,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontWeight: FontWeight.bold,
                     fontSize: 18,
+                    color: textColor,
                   ),
                 ),
                 const SizedBox(height: 8),
-                Text(calorie),
+                Text(
+                  calorie,
+                  style: TextStyle(color: subTextColor),
+                ),
               ],
             ),
           ),
           // 今日（編集可能）の場合のみ ＋ ボタンを表示
           if (canEdit)
             CircleAvatar(
-              backgroundColor: Colors.grey.shade200,
+              backgroundColor: iconBgColor,
               child: IconButton(
-                icon: const Icon(
+                icon: Icon(
                   Icons.add,
-                  color: Colors.black,
+                  color: textColor,
                 ),
                 onPressed: () {
                   Navigator.push(
                     context,
                     MaterialPageRoute(
-                      builder: (_) => const MealDetailPage(),
+                      builder: (_) => MealDetailPage(isDarkMode: widget.isDarkMode),
                     ),
                   );
                 },

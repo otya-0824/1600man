@@ -5,7 +5,12 @@ import 'calendar.dart';
 import 'mypage.dart';
 
 class GraphScreen extends StatefulWidget {
-  const GraphScreen({super.key});
+  final bool isDarkMode; // ← ダークモードの状態を受け取る変数
+
+  const GraphScreen({
+    super.key,
+    this.isDarkMode = false, // デフォルトはライトモード
+  });
 
   @override
   State<GraphScreen> createState() => _GraphScreenState();
@@ -79,16 +84,10 @@ class _GraphScreenState extends State<GraphScreen> {
     bool canGoPrev = _currentMonday.isAfter(limitMonday);
     bool canGoNext = _currentMonday.add(const Duration(days: 7)).isBefore(_maxDate);
 
-    // ==========================================
-    // 【バックエンド連携用サンプルデータ】
-    // ==========================================
     final List<double> calorieData = [1800, 2100, 1600, 2500, 1900, 2200, 1700];
     final double targetCalories = 1200.0; 
     final double averageCalories = 2028.0;
 
-    // ==========================================
-    // 【動的スケール計算】
-    // ==========================================
     double maxDataValue = calorieData.isNotEmpty 
         ? calorieData.reduce((curr, next) => curr > next ? curr : next) 
         : 2000.0;
@@ -98,18 +97,23 @@ class _GraphScreenState extends State<GraphScreen> {
     double topScaleValue = maxGraphValue;
 
     const Color primaryGreen = Color(0xFF66BB6A);
+    // 受け取った widget.isDarkMode の状態を使用
+    final bool isDarkMode = widget.isDarkMode;
+    
+    final Color backgroundColor = isDarkMode ? const Color(0xFF121212) : Colors.white;
+    final Color textColor = isDarkMode ? Colors.white70 : Colors.black87;
 
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: backgroundColor,
       appBar: AppBar(
-        backgroundColor: Colors.white,
+        backgroundColor: backgroundColor,
         elevation: 0,
         automaticallyImplyLeading: false,
         centerTitle: true,
-        title: const Text(
+        title: Text(
           '栄養素グラフ',
           style: TextStyle(
-            color: Colors.black87,
+            color: textColor,
             fontWeight: FontWeight.bold,
             fontSize: 16,
           ),
@@ -121,25 +125,25 @@ class _GraphScreenState extends State<GraphScreen> {
           child: Column(
             children: [
               const SizedBox(height: 10),
-              // 上段タブ：カロリー / ビタミン / ミネラル
+              // 上段タブ
               Row(
                 children: [
-                  _buildTabButton('カロリー', 0, isUpper: true),
+                  _buildTabButton('カロリー', 0, isUpper: true, isDarkMode: isDarkMode),
                   const SizedBox(width: 8),
-                  _buildTabButton('ビタミン', 1, isUpper: true),
+                  _buildTabButton('ビタミン', 1, isUpper: true, isDarkMode: isDarkMode),
                   const SizedBox(width: 8),
-                  _buildTabButton('ミネラル', 2, isUpper: true),
+                  _buildTabButton('ミネラル', 2, isUpper: true, isDarkMode: isDarkMode),
                 ],
               ),
               const SizedBox(height: 8),
-              // 下段タブ：タンパク質 / 脂質 / 炭水化物
+              // 下段タブ
               Row(
                 children: [
-                  _buildTabButton('タンパク質', 0, isUpper: false),
+                  _buildTabButton('タンパク質', 0, isUpper: false, isDarkMode: isDarkMode),
                   const SizedBox(width: 8),
-                  _buildTabButton('脂質', 1, isUpper: false),
+                  _buildTabButton('脂質', 1, isUpper: false, isDarkMode: isDarkMode),
                   const SizedBox(width: 8),
-                  _buildTabButton('炭水化物', 2, isUpper: false),
+                  _buildTabButton('炭水化物', 2, isUpper: false, isDarkMode: isDarkMode),
                 ],
               ),
               const SizedBox(height: 16),
@@ -151,7 +155,7 @@ class _GraphScreenState extends State<GraphScreen> {
                   IconButton(
                     icon: Icon(
                       Icons.chevron_left,
-                      color: canGoPrev ? Colors.grey.shade700 : Colors.grey.shade300,
+                      color: canGoPrev ? (isDarkMode ? Colors.white70 : Colors.grey.shade700) : Colors.grey.shade600,
                     ),
                     onPressed: canGoPrev ? _prevWeek : null,
                   ),
@@ -159,17 +163,17 @@ class _GraphScreenState extends State<GraphScreen> {
                     child: Text(
                       _formatDateRange(),
                       overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 13,
                         fontWeight: FontWeight.bold,
-                        color: Colors.black87,
+                        color: textColor,
                       ),
                     ),
                   ),
                   IconButton(
                     icon: Icon(
                       Icons.chevron_right,
-                      color: canGoNext ? Colors.grey.shade700 : Colors.grey.shade300,
+                      color: canGoNext ? (isDarkMode ? Colors.white70 : Colors.grey.shade700) : Colors.grey.shade600,
                     ),
                     onPressed: canGoNext ? _nextWeek : null,
                   ),
@@ -187,10 +191,10 @@ class _GraphScreenState extends State<GraphScreen> {
                       const SizedBox(height: 2),
                       Text(
                         '${averageCalories.toInt()} kcal',
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 15,
                           fontWeight: FontWeight.bold,
-                          color: Colors.black87,
+                          color: textColor,
                         ),
                       ),
                     ],
@@ -198,7 +202,7 @@ class _GraphScreenState extends State<GraphScreen> {
                   Container(
                     height: 24,
                     width: 1,
-                    color: Colors.grey.shade300,
+                    color: isDarkMode ? Colors.grey.shade700 : Colors.grey.shade300,
                   ),
                   Column(
                     children: [
@@ -206,10 +210,10 @@ class _GraphScreenState extends State<GraphScreen> {
                       const SizedBox(height: 2),
                       Text(
                         '${targetCalories.toInt()} kcal', 
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 15,
                           fontWeight: FontWeight.bold,
-                          color: Colors.black87,
+                          color: textColor,
                         ),
                       ),
                     ],
@@ -223,9 +227,9 @@ class _GraphScreenState extends State<GraphScreen> {
                 height: 250,
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: Colors.white,
+                  color: isDarkMode ? const Color(0xFF1E1E1E) : Colors.white,
                   borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: Colors.grey.shade200),
+                  border: Border.all(color: isDarkMode ? Colors.grey.shade800 : Colors.grey.shade200),
                 ),
                 child: Column(
                   children: [
@@ -252,24 +256,24 @@ class _GraphScreenState extends State<GraphScreen> {
                                 ),
                               ),
                               const SizedBox(width: 8),
-                              // 右側のグラフ本体（日付ラベルと幅を一致させるためパディングを削除しStack内で調整）
+                              // 右側のグラフ本体
                               Expanded(
                                 child: Padding(
-                                  padding: const EdgeInsets.symmetric(horizontal: 0), // 日付ラベルのspaceAroundと位置を正確に同期
+                                  padding: const EdgeInsets.symmetric(horizontal: 0),
                                   child: Stack(
                                     children: [
-                                      // 背景の目盛り線（6本）
+                                      // 背景の目盛り線
                                       ...List.generate(6, (index) {
                                         double ratio = index / 5;
                                         return Positioned(
                                           top: chartHeight * ratio,
                                           left: 0,
                                           right: 0,
-                                          child: Divider(color: Colors.grey.shade200, height: 1),
+                                          child: Divider(color: isDarkMode ? Colors.grey.shade800 : Colors.grey.shade200, height: 1),
                                         );
                                       }),
                                       
-                                      // 目標ライン（黄色い横棒）
+                                      // 目標ライン
                                       Positioned(
                                         top: chartHeight * (1 - (targetCalories / topScaleValue)),
                                         left: 0,
@@ -312,7 +316,7 @@ class _GraphScreenState extends State<GraphScreen> {
                       ),
                     ),
                     const SizedBox(height: 8),
-                    // 下部エリア：左側に単位 (kcal)、右側に日付・曜日を配置（左側の幅をグラフ側と完全に一致させる）
+                    // 下部エリア：単位と日付
                     Row(
                       children: [
                         const SizedBox(
@@ -334,14 +338,14 @@ class _GraphScreenState extends State<GraphScreen> {
                                   targetDate.day == now.day;
 
                               return SizedBox(
-                                width: 16, // 棒グラフの幅(16)と揃えることで中央位置を完全一致させる
+                                width: 16,
                                 child: Column(
                                   children: [
                                     Text(
                                       '${targetDate.day}',
                                       style: TextStyle(
                                         fontSize: 11,
-                                        color: isToday ? primaryGreen : Colors.black87,
+                                        color: isToday ? primaryGreen : textColor,
                                         fontWeight: isToday ? FontWeight.bold : FontWeight.normal,
                                       ),
                                     ),
@@ -374,19 +378,20 @@ class _GraphScreenState extends State<GraphScreen> {
         type: BottomNavigationBarType.fixed,
         selectedItemColor: primaryGreen,
         unselectedItemColor: Colors.grey,
+        backgroundColor: backgroundColor,
         onTap: (index) {
           if (index == 2) return;
           switch (index) {
             case 0:
               Navigator.pushReplacement(
                 context,
-                MaterialPageRoute(builder: (_) => const HomePage()),
+                MaterialPageRoute(builder: (_) => HomePage(isDarkMode: widget.isDarkMode)),
               );
               break;
             case 1:
               Navigator.pushReplacement(
                 context,
-                MaterialPageRoute(builder: (_) => const MealPage()),
+                MaterialPageRoute(builder: (_) => MealPage(isDarkMode: widget.isDarkMode)),
               );
               break;
             case 2:
@@ -394,13 +399,13 @@ class _GraphScreenState extends State<GraphScreen> {
             case 3:
               Navigator.pushReplacement(
                 context,
-                MaterialPageRoute(builder: (_) => const CalendarScreen()),
+                MaterialPageRoute(builder: (_) => CalendarScreen(isDarkMode: widget.isDarkMode)),
               );
               break;
             case 4:
               Navigator.pushReplacement(
                 context,
-                MaterialPageRoute(builder: (_) => const MypageScreen()),
+                MaterialPageRoute(builder: (_) => MypageScreen(isDarkMode: widget.isDarkMode)),
               );
               break;
           }
@@ -417,7 +422,7 @@ class _GraphScreenState extends State<GraphScreen> {
     );
   }
 
-  Widget _buildTabButton(String text, int index, {required bool isUpper}) {
+  Widget _buildTabButton(String text, int index, {required bool isUpper, required bool isDarkMode}) {
     bool isSelected = isUpper
         ? (_selectedUpperIndex == index)
         : (_selectedLowerIndex == index);
@@ -439,17 +444,23 @@ class _GraphScreenState extends State<GraphScreen> {
         child: Container(
           padding: const EdgeInsets.symmetric(vertical: 8),
           decoration: BoxDecoration(
-            color: isSelected ? primaryGreen : Colors.grey.shade100,
+            color: isSelected 
+                ? primaryGreen 
+                : (isDarkMode ? const Color(0xFF2C2C2C) : Colors.grey.shade100),
             borderRadius: BorderRadius.circular(6),
             border: Border.all(
-              color: isSelected ? primaryGreen : Colors.grey.shade300,
+              color: isSelected 
+                  ? primaryGreen 
+                  : (isDarkMode ? Colors.grey.shade800 : Colors.grey.shade300),
             ),
           ),
           alignment: Alignment.center,
           child: Text(
             text,
             style: TextStyle(
-              color: isSelected ? Colors.white : Colors.black87,
+              color: isSelected 
+                  ? Colors.white 
+                  : (isDarkMode ? Colors.white70 : Colors.black87),
               fontWeight: FontWeight.bold,
               fontSize: 13,
             ),

@@ -1,7 +1,12 @@
 ﻿import 'package:flutter/material.dart';
 
 class MealDetailPage extends StatefulWidget {
-  const MealDetailPage({super.key});
+  final bool isDarkMode; // ダークモードの状態を受け取る変数
+
+  const MealDetailPage({
+    super.key,
+    this.isDarkMode = false, // デフォルトはライトモード
+  });
 
   @override
   State<MealDetailPage> createState() => _MealDetailPageState();
@@ -51,23 +56,30 @@ class _MealDetailPageState extends State<MealDetailPage> {
 
   @override
   Widget build(BuildContext context) {
-    const Color primaryGreen = Colors.green;
+    const Color primaryGreen = Color(0xFF66BB6A);
+
+    // ダークモードに応じた色の定義
+    final backgroundColor = widget.isDarkMode ? const Color(0xFF121212) : Colors.white;
+    final cardColor = widget.isDarkMode ? const Color(0xFF1E1E1E) : Colors.white;
+    final textColor = widget.isDarkMode ? Colors.white : Colors.black;
+    final subTextColor = widget.isDarkMode ? Colors.white70 : Colors.grey;
+    final fillColor = widget.isDarkMode ? Colors.grey.shade800 : Colors.grey.shade100;
+    final dividerColor = widget.isDarkMode ? Colors.grey.shade800 : Colors.grey.shade300;
 
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: backgroundColor,
       appBar: AppBar(
-        backgroundColor: Colors.white,
+        backgroundColor: backgroundColor,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios, color: Colors.black),
+          icon: Icon(Icons.arrow_back_ios, color: textColor),
           onPressed: () => Navigator.pop(context),
         ),
         centerTitle: true,
-        title: const Text(
+        title: Text(
           "朝食の記録",
-          style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold),
+          style: TextStyle(color: textColor, fontWeight: FontWeight.bold),
         ),
-        // actions を削除して右上の完了ボタンを消去しました
       ),
       body: Column(
         children: [
@@ -75,11 +87,13 @@ class _MealDetailPageState extends State<MealDetailPage> {
           Padding(
             padding: const EdgeInsets.all(16),
             child: TextField(
+              style: TextStyle(color: textColor),
               decoration: InputDecoration(
                 hintText: "食品を検索",
-                prefixIcon: const Icon(Icons.search),
+                hintStyle: TextStyle(color: subTextColor),
+                prefixIcon: Icon(Icons.search, color: subTextColor),
                 filled: true,
-                fillColor: Colors.grey.shade100,
+                fillColor: fillColor,
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
                   borderSide: BorderSide.none,
@@ -114,11 +128,11 @@ class _MealDetailPageState extends State<MealDetailPage> {
                 return ListTile(
                   dense: true,
                   leading: CircleAvatar(
-                    backgroundColor: Colors.green.shade50,
+                    backgroundColor: widget.isDarkMode ? Colors.grey.shade800 : Colors.green.shade50,
                     child: Icon(food["icon"], color: primaryGreen, size: 20),
                   ),
-                  title: Text(food["name"], style: const TextStyle(fontWeight: FontWeight.bold)),
-                  subtitle: Text("${food["amount"]} - ${food["calorie"]} kcal"),
+                  title: Text(food["name"], style: TextStyle(fontWeight: FontWeight.bold, color: textColor)),
+                  subtitle: Text("${food["amount"]} - ${food["calorie"]} kcal", style: TextStyle(color: subTextColor)),
                   trailing: IconButton(
                     icon: const Icon(Icons.add_circle, color: primaryGreen),
                     onPressed: () => _addFood(food),
@@ -128,7 +142,7 @@ class _MealDetailPageState extends State<MealDetailPage> {
             ),
           ),
 
-          const Divider(thickness: 1),
+          Divider(thickness: 1, color: dividerColor),
 
           // 選択された料理の一覧表示領域
           Padding(
@@ -137,18 +151,18 @@ class _MealDetailPageState extends State<MealDetailPage> {
               alignment: Alignment.centerLeft,
               child: Text(
                 "選択した料理 (${selectedFoods.length})",
-                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: textColor),
               ),
             ),
           ),
 
           Expanded(
             child: selectedFoods.isEmpty
-                ? const Center(
+                ? Center(
                     child: Text(
                       "追加された料理はありません\n上のリストから「＋」で追加してください",
                       textAlign: TextAlign.center,
-                      style: TextStyle(color: Colors.grey),
+                      style: TextStyle(color: subTextColor),
                     ),
                   )
                 : ListView.builder(
@@ -157,18 +171,19 @@ class _MealDetailPageState extends State<MealDetailPage> {
                       final food = selectedFoods[index];
                       return ListTile(
                         leading: CircleAvatar(
-                          backgroundColor: Colors.grey.shade200,
-                          child: Icon(food["icon"], color: Colors.black54),
+                          backgroundColor: widget.isDarkMode ? Colors.grey.shade800 : Colors.grey.shade200,
+                          child: Icon(food["icon"], color: widget.isDarkMode ? Colors.white70 : Colors.black54),
                         ),
-                        title: Text(food["name"], style: const TextStyle(fontWeight: FontWeight.bold)),
-                        subtitle: Text(food["amount"]),
+                        title: Text(food["name"], style: TextStyle(fontWeight: FontWeight.bold, color: textColor)),
+                        subtitle: Text(food["amount"], style: TextStyle(color: subTextColor)),
                         trailing: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
                             Text(
                               "${food["calorie"]} kcal",
-                              style: const TextStyle(fontWeight: FontWeight.bold),
+                              style: TextStyle(fontWeight: FontWeight.bold, color: textColor),
                             ),
+                            const SizedBox(width: 8),
                             IconButton(
                               icon: const Icon(Icons.remove_circle_outline, color: Colors.red),
                               onPressed: () => _removeFood(index),
@@ -184,10 +199,10 @@ class _MealDetailPageState extends State<MealDetailPage> {
           Container(
             padding: const EdgeInsets.all(20),
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: cardColor,
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.05),
+                  color: widget.isDarkMode ? Colors.black.withValues(alpha: 0.3) : Colors.black.withValues(alpha: 0.05),
                   blurRadius: 10,
                 ),
               ],
@@ -197,12 +212,12 @@ class _MealDetailPageState extends State<MealDetailPage> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.end,
                   children: [
-                    const Text("合計 ", style: TextStyle(fontSize: 18)),
+                    Text("合計 ", style: TextStyle(fontSize: 18, color: textColor)),
                     Text(
                       "$totalCalories",
-                      style: const TextStyle(fontSize: 32, fontWeight: FontWeight.bold),
+                      style: TextStyle(fontSize: 32, fontWeight: FontWeight.bold, color: textColor),
                     ),
-                    const Text(" kcal", style: TextStyle(fontSize: 18)),
+                    Text(" kcal", style: TextStyle(fontSize: 18, color: textColor)),
                   ],
                 ),
                 const SizedBox(height: 16),
@@ -234,6 +249,11 @@ class _MealDetailPageState extends State<MealDetailPage> {
   // タブボタン生成ヘルパー
   Widget _buildTabButton(String label, int index) {
     final bool isSelected = selectedTabIndex == index;
+    
+    // タブの非選択時の背景色と文字色をダークモード対応に調整
+    final unselectedBgColor = widget.isDarkMode ? Colors.grey.shade800 : Colors.grey.shade200;
+    final unselectedTextColor = widget.isDarkMode ? Colors.white70 : Colors.black;
+
     return Expanded(
       child: ElevatedButton(
         onPressed: () {
@@ -242,12 +262,12 @@ class _MealDetailPageState extends State<MealDetailPage> {
           });
         },
         style: ElevatedButton.styleFrom(
-          backgroundColor: isSelected ? Colors.green : Colors.grey.shade200,
+          backgroundColor: isSelected ? const Color(0xFF66BB6A) : unselectedBgColor,
           elevation: 0,
         ),
         child: Text(
           label,
-          style: TextStyle(color: isSelected ? Colors.white : Colors.black),
+          style: TextStyle(color: isSelected ? Colors.white : unselectedTextColor),
         ),
       ),
     );

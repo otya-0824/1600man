@@ -5,7 +5,12 @@ import 'gurahu.dart';
 import 'mypage.dart';
 
 class CalendarScreen extends StatefulWidget {
-  const CalendarScreen({super.key});
+  final bool isDarkMode; // ← ダークモードの状態を受け取る変数
+
+  const CalendarScreen({
+    super.key,
+    this.isDarkMode = false, // デフォルトはライトモード
+  });
 
   @override
   State<CalendarScreen> createState() => _CalendarScreenState();
@@ -33,25 +38,13 @@ class _CalendarScreenState extends State<CalendarScreen> {
     }
   }
 
-  // =====================================================================
-  // 【バックエンド担当者様へのデータ連携仕様】
-  // 日付ごとの達成状況を以下の形式（Map<String, String> または Enum）で
-  // バックエンドから受け取り、この変数（または状態管理）に格納してください。
-  //
-  // キーの形式: "yyyy-M-d" (例: "2026-8-17" または "2026-08-17")
-  // 値（ステータス）の種類:
-  //   - 'success' (または 1) -> 緑の丸（達成）
-  //   - 'warning' (または 2) -> 黄色の丸（やや不足）
-  //   - 'danger'  (または 3) -> 赤の丸（不足）
-  //   - null または 未登録     -> 丸を表示しない
-  // =====================================================================
   final Map<String, String> _backendDailyStatusMap = {
     "2026-8-1": 'success',
     "2026-8-2": 'warning',
     "2026-8-3": 'danger',
-    "2026-8-17": 'success', // サンプル: 17日は達成（緑）
-    "2026-8-18": 'warning', // サンプル: 18日はやや不足（黄）
-    "2026-8-19": 'danger',  // サンプル: 19日は不足（赤）
+    "2026-8-17": 'success', 
+    "2026-8-18": 'warning', 
+    "2026-8-19": 'danger',  
   };
 
   // 月を前後に移動する処理（2026年8月 〜 2090年12月）
@@ -73,8 +66,6 @@ class _CalendarScreenState extends State<CalendarScreen> {
 
       _currentYear = newYear;
       _currentMonth = newMonth;
-      
-      // TODO: 月が切り替わったタイミングで、バックエンドに新月のデータを要求するAPIを叩く想定
     });
   }
 
@@ -88,24 +79,32 @@ class _CalendarScreenState extends State<CalendarScreen> {
       case 'danger':
         return const Color(0xFFEF5350); // 赤（不足）
       default:
-        return null; // ステータスがない場合は色を返さない
+        return null; 
     }
   }
 
   @override
   Widget build(BuildContext context) {
     const Color primaryGreen = Color(0xFF66BB6A);
+    // 受け取った widget.isDarkMode の状態を使用
+    final bool isDarkMode = widget.isDarkMode;
+
+    // モードに応じた背景色・文字色・枠線色を定義
+    final Color backgroundColor = isDarkMode ? const Color(0xFF121212) : Colors.white;
+    final Color textColor = isDarkMode ? Colors.white70 : Colors.black87;
+    final Color borderColor = isDarkMode ? Colors.grey.shade800 : Colors.grey.shade300;
+    final Color headerBgColor = isDarkMode ? const Color(0xFF1E1E1E) : Colors.grey.shade50;
 
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: backgroundColor,
       appBar: AppBar(
-        backgroundColor: Colors.white,
+        backgroundColor: backgroundColor,
         elevation: 0,
         centerTitle: true,
-        title: const Text(
+        title: Text(
           'カレンダー',
           style: TextStyle(
-            color: Colors.black87,
+            color: textColor,
             fontWeight: FontWeight.bold,
             fontSize: 18,
           ),
@@ -119,21 +118,21 @@ class _CalendarScreenState extends State<CalendarScreen> {
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               IconButton(
-                icon: const Icon(Icons.chevron_left, color: Colors.grey),
+                icon: Icon(Icons.chevron_left, color: isDarkMode ? Colors.white54 : Colors.grey),
                 onPressed: (_currentYear == 2026 && _currentMonth == 8)
                     ? null
                     : () => _changeMonth(-1),
               ),
               Text(
                 '$_currentYear年$_currentMonth月',
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.bold,
-                  color: Colors.black87,
+                  color: textColor,
                 ),
               ),
               IconButton(
-                icon: const Icon(Icons.chevron_right, color: Colors.grey),
+                icon: Icon(Icons.chevron_right, color: isDarkMode ? Colors.white54 : Colors.grey),
                 onPressed: (_currentYear == 2090 && _currentMonth == 12)
                     ? null
                     : () => _changeMonth(1),
@@ -147,7 +146,8 @@ class _CalendarScreenState extends State<CalendarScreen> {
             padding: const EdgeInsets.symmetric(horizontal: 16.0),
             child: Container(
               decoration: BoxDecoration(
-                border: Border.all(color: Colors.grey.shade300),
+                color: backgroundColor,
+                border: Border.all(color: borderColor),
                 borderRadius: BorderRadius.circular(8),
               ),
               child: Column(
@@ -157,27 +157,27 @@ class _CalendarScreenState extends State<CalendarScreen> {
                   Container(
                     padding: const EdgeInsets.symmetric(vertical: 8),
                     decoration: BoxDecoration(
-                      color: Colors.grey.shade50,
+                      color: headerBgColor,
                       border: Border(
-                        bottom: BorderSide(color: Colors.grey.shade300),
+                        bottom: BorderSide(color: borderColor),
                       ),
                     ),
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.spaceAround,
-                      children: const [
-                        _WeekDayLabel(text: '月'),
-                        _WeekDayLabel(text: '火'),
-                        _WeekDayLabel(text: '水'),
-                        _WeekDayLabel(text: '木'),
-                        _WeekDayLabel(text: '金'),
-                        _WeekDayLabel(text: '土'),
-                        _WeekDayLabel(text: '日'),
+                      children: [
+                        _WeekDayLabel(text: '月', isDarkMode: isDarkMode),
+                        _WeekDayLabel(text: '火', isDarkMode: isDarkMode),
+                        _WeekDayLabel(text: '水', isDarkMode: isDarkMode),
+                        _WeekDayLabel(text: '木', isDarkMode: isDarkMode),
+                        _WeekDayLabel(text: '金', isDarkMode: isDarkMode),
+                        _WeekDayLabel(text: '土', isDarkMode: isDarkMode),
+                        _WeekDayLabel(text: '日', isDarkMode: isDarkMode),
                       ],
                     ),
                   ),
 
                   // 日付グリッド
-                  _buildCalendarGrid(_currentYear, _currentMonth),
+                  _buildCalendarGrid(_currentYear, _currentMonth, isDarkMode, borderColor, textColor),
                 ],
               ),
             ),
@@ -187,48 +187,49 @@ class _CalendarScreenState extends State<CalendarScreen> {
           // 達成状況の凡例
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
-            children: const [
-              _LegendItem(color: Color(0xFF66BB6A), label: '達成'),
-              SizedBox(width: 20),
-              _LegendItem(color: Color(0xFFFFCA28), label: 'やや不足'),
-              SizedBox(width: 20),
-              _LegendItem(color: Color(0xFFEF5350), label: '不足'),
+            children: [
+              _LegendItem(color: const Color(0xFF66BB6A), label: '達成', textColor: textColor),
+              const SizedBox(width: 20),
+              _LegendItem(color: const Color(0xFFFFCA28), label: 'やや不足', textColor: textColor),
+              const SizedBox(width: 20),
+              _LegendItem(color: const Color(0xFFEF5350), label: '不足', textColor: textColor),
             ],
           ),
         ],
       ),
 
-      // ボトムナビゲーションバーを追加
+      // ボトムナビゲーションバー
       bottomNavigationBar: BottomNavigationBar(
-        currentIndex: 3, // カレンダーをアクティブ表示（0:ホーム, 1:記録, 2:グラフ, 3:カレンダー, 4:マイページ）
+        currentIndex: 3, 
         type: BottomNavigationBarType.fixed,
         selectedItemColor: primaryGreen,
         unselectedItemColor: Colors.grey,
+        backgroundColor: backgroundColor,
         onTap: (index) {
-          if (index == 3) return; // すでにカレンダーにいる場合は何もしない
+          if (index == 3) return; 
           switch (index) {
             case 0:
               Navigator.pushReplacement(
                 context,
-                MaterialPageRoute(builder: (_) => const HomePage()),
+                MaterialPageRoute(builder: (_) => HomePage(isDarkMode: widget.isDarkMode)),
               );
               break;
             case 1:
               Navigator.pushReplacement(
                 context,
-                MaterialPageRoute(builder: (_) => const MealPage()),
+                MaterialPageRoute(builder: (_) => MealPage(isDarkMode: widget.isDarkMode)),
               );
               break;
             case 2:
               Navigator.pushReplacement(
                 context,
-                MaterialPageRoute(builder: (_) => const GraphScreen()),
+                MaterialPageRoute(builder: (_) => GraphScreen(isDarkMode: widget.isDarkMode)),
               );
               break;
             case 4:
               Navigator.pushReplacement(
                 context,
-                MaterialPageRoute(builder: (_) => const MypageScreen()),
+                MaterialPageRoute(builder: (_) => MypageScreen(isDarkMode: widget.isDarkMode)),
               );
               break;
           }
@@ -246,7 +247,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
   }
 
   // 枠線付きのカレンダーグリッドを生成
-  Widget _buildCalendarGrid(int year, int month) {
+  Widget _buildCalendarGrid(int year, int month, bool isDarkMode, Color borderColor, Color textColor) {
     DateTime firstDayOfMonth = DateTime(year, month, 1);
     int weekdayOfFirstDay = firstDayOfMonth.weekday; // 月=1, 日=7
     int daysInMonth = DateTime(year, month + 1, 0).day;
@@ -255,7 +256,6 @@ class _CalendarScreenState extends State<CalendarScreen> {
     int totalCells = leadingSpaces + daysInMonth;
     int totalRows = (totalCells / 7).ceil();
 
-    // 今日の日付を取得
     DateTime now = DateTime.now();
 
     return Column(
@@ -267,12 +267,10 @@ class _CalendarScreenState extends State<CalendarScreen> {
 
             bool isEffectiveDay = index >= leadingSpaces && day <= daysInMonth;
 
-            // 各有効な日付に対応するステータスを取得するためのキーを作成
             String dateKey = "$year-$month-$day";
             String? status = isEffectiveDay ? _backendDailyStatusMap[dateKey] : null;
             Color? dotColor = _getStatusColor(status);
 
-            // 今日かどうかを判定
             bool isToday = isEffectiveDay &&
                 now.year == year &&
                 now.month == month &&
@@ -288,10 +286,10 @@ class _CalendarScreenState extends State<CalendarScreen> {
                 decoration: BoxDecoration(
                   border: Border(
                     right: col < 6
-                        ? BorderSide(color: Colors.grey.shade300, width: 0.5)
+                        ? BorderSide(color: borderColor, width: 0.5)
                         : BorderSide.none,
                     bottom: row < totalRows - 1
-                        ? BorderSide(color: Colors.grey.shade300, width: 0.5)
+                        ? BorderSide(color: borderColor, width: 0.5)
                         : BorderSide.none,
                   ),
                 ),
@@ -311,13 +309,12 @@ class _CalendarScreenState extends State<CalendarScreen> {
                               '$day',
                               style: TextStyle(
                                 fontSize: 14,
-                                color: isToday ? Colors.white : Colors.black87,
+                                color: isToday ? Colors.white : textColor,
                                 fontWeight: isToday ? FontWeight.bold : FontWeight.w500,
                               ),
                             ),
                           ),
                           const SizedBox(height: 4), 
-                          // 日付ごとのステータスドット（色が存在する場合のみ表示）
                           SizedBox(
                             height: 6,
                             child: dotColor != null
@@ -346,16 +343,17 @@ class _CalendarScreenState extends State<CalendarScreen> {
 // 曜日の文字を表示する部品
 class _WeekDayLabel extends StatelessWidget {
   final String text;
-  const _WeekDayLabel({required this.text});
+  final bool isDarkMode;
+  const _WeekDayLabel({required this.text, required this.isDarkMode});
 
   @override
   Widget build(BuildContext context) {
     return Text(
       text,
-      style: const TextStyle(
+      style: TextStyle(
         fontSize: 13,
         fontWeight: FontWeight.bold,
-        color: Colors.black54,
+        color: isDarkMode ? Colors.white60 : Colors.black54,
       ),
     );
   }
@@ -365,8 +363,9 @@ class _WeekDayLabel extends StatelessWidget {
 class _LegendItem extends StatelessWidget {
   final Color color;
   final String label;
+  final Color textColor;
 
-  const _LegendItem({required this.color, required this.label});
+  const _LegendItem({required this.color, required this.label, required this.textColor});
 
   @override
   Widget build(BuildContext context) {
@@ -383,9 +382,9 @@ class _LegendItem extends StatelessWidget {
         const SizedBox(width: 6),
         Text(
           label,
-          style: const TextStyle(
+          style: TextStyle(
             fontSize: 13,
-            color: Colors.black87,
+            color: textColor,
             fontWeight: FontWeight.w500,
           ),
         ),
